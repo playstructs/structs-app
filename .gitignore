@@ -1,0 +1,9 @@
+node_modules/
+# Build outputs of scripts/sync.sh — the game's assets and the shared card
+# components, copied from structs-universe. Never hand-edit these.
+public/css/
+public/fonts/
+public/img/
+public/structicons/
+public/shared/
+public/favicon.ico

@@ -1,0 +1,109 @@
+/* structs.app — only what the game's own stylesheets do not already do.
+ *
+ * Tokens only, never a fallback colour (`var(--x, #hex)` lets a misspelt
+ * token paint an invented colour). The layout, frame, nav, buttons and every
+ * card come from sui.css, main.css and the shared card components.
+ */
+
+/* main.css centres everything on the body; a page of content reads left. */
+.site-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-md);
+  gap: var(--spacing-lg);
+  text-align: left;
+}
+
+.site-home {
+  padding: var(--spacing-lg) var(--spacing-md);
+  gap: var(--spacing-lg);
+}
+
+.site-title {
+  align-self: stretch;
+  margin: 0;
+  color: var(--text-body);
+  overflow-wrap: anywhere;
+}
+
+.site-tagline { margin: 0; }
+
+/* The preview image is the hero: the same picture the link unfurls with. */
+.site-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 2px solid var(--border-player-dark);
+  image-rendering: pixelated;
+}
+
+.site-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-md);
+}
+
+/* The open did nothing (the app is not installed): the download steps forward. */
+.sui-screen-btn.site-nudge {
+  animation: site-nudge 0.9s steps(2, jump-none) 3;
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+@keyframes site-nudge {
+  from { outline-color: var(--accent-primary); }
+  to { outline-color: var(--accent-primary-active); }
+}
+
+.site-downloads {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-self: stretch;
+  gap: var(--spacing-xs) var(--spacing-lg);
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-downloads a,
+.site-footer a,
+.site-version {
+  color: var(--text-body);
+  text-decoration: none;
+}
+.site-downloads a:hover,
+.site-footer a:hover,
+.site-version:hover { color: var(--accent-primary); }
+
+.site-version { align-self: center; }
+
+.site-detail {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--spacing-md);
+}
+.site-detail:empty { display: none; }
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-xs) var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-subtle);
+  align-self: stretch;
+}
+
+/* The external links share the nav bar with the page tabs, pinned right. */
+.site-nav-links {
+  display: flex;
+  margin-left: auto;
+}
+
+/* A narrow phone: only the page tabs keep the bar; the footer carries the links. */
+@media (max-width: 480px) {
+  .site-nav-links { display: none; }
+}

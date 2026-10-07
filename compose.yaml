@@ -1,0 +1,27 @@
+# structs.app beside a guild's structs-pg.
+#
+# Joins the guild stack's network (docker-structs-guild) and reads the database
+# by its service name. Give it a role that can only SELECT; the app also opens
+# every transaction read-only.
+#
+#   scripts/sync.sh && docker compose up -d --build
+#
+services:
+  structs-app:
+    image: 'structs/structs-app:latest'
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "${STRUCTS_APP_DATABASE_URL:-postgresql://structs@structs-pg:5432/structs?sslmode=require}"
+      PUBLIC_ORIGIN: "${STRUCTS_APP_ORIGIN:-https://structs.app}"
+      # Optional: raises GitHub's API limit for the release lookup.
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+    ports:
+      - "${STRUCTS_APP_PORT:-8437}:8080"
+    networks:
+      - guild
+
+networks:
+  guild:
+    external: true
+    name: "${STRUCTS_GUILD_NETWORK:-docker-structs-guild_default}"
