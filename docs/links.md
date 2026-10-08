@@ -57,6 +57,32 @@ The code is base64url of a versioned byte layout (`src/simcode.js`):
 Decoding returns the simulator's own version-3 layout JSON, so the
 simulator's `validate()` still decides whether a layout is legal.
 
+### Results
+
+`/sim/<code>/<result>` is the same battle plus how it went, for sharing a
+score. Strip the last segment and you have the battle, so every result link is
+also "play this battle". The result is 19 bytes, always 26 characters of
+base64url (`encodeResult` / `decodeResult` in `src/simcode.js`, copied from
+structs-universe `frontend/simcode.js`; spec in
+`proposals/sim-results-link.md` there):
+
+```
+0      version (1)
+1      winner (bits 0-1: player · computer · draw) · forfeit (bit 2) · stalemate (bits 3-4: none · moves · quiet)
+2      rules revision
+3, 4   blocks played (uint16)
+5, 6   battle seconds (uint16)
+7-12   player tallies: lost, attacks, damage, evaded, blocked, counter damage
+13-18  computer tallies: the same six
+```
+
+Numbers saturate rather than wrap. A result is a claim, not a proof: battles
+are not replayable. A result that does not decode, or claims more losses than
+a side fielded, is dropped and the link shows its battle; a good battle never
+404s. The page is titled in the debrief's own words ("Victory vs Difficult in
+03:14") and the preview shows the verdict, the time and blocks, and each
+side's losses over the battle board.
+
 ## In the desktop app
 
 The app registers the `structs` URL scheme. `structs://record/1-61` should do
@@ -67,9 +93,13 @@ pure modules with no dependencies, so the app can carry the same parser, and
 
 ## Unfurls
 
-Every link has a 1200×630 preview at `/og/<view>/<id>.png`, drawn from the
-game's own art (SUI panels, portraits, struct sprites, map tiles) and live
-data from structs-pg. Pages carry Open Graph and Twitter tags, so Discord,
+Every link has a 1200×630 preview at `/og/<view>/<id>.png`, drawn as the
+game draws a window — an SUI panel with a nav screen (the view and the link)
+and a body screen, at the game's 2× UI scale — from the game's own art (SUI
+frames and icons, portraits, struct sprites, battleground tiles) and live
+data from structs-pg. Text is fitted against the real worst cases (20-character
+names, the unit ladders' longest readings) with the pixel faces' measured
+glyph widths; see `npm run previews`. Pages carry Open Graph and Twitter tags, so Discord,
 Slack, X, iMessage and the rest show the picture, a title and a one-line
 summary. The image URL has a ten-minute bucket in its query string, so a link
 shared again later unfurls with a fresh picture.

@@ -11,7 +11,7 @@
  * file the desktop app draws with.
  */
 import * as db from './db.js';
-import { decode as decodeSim, COMMAND_TYPE } from './simcode.js';
+import { decode as decodeSim, decodeResult, verdict, clock, COMMAND_TYPE } from './simcode.js';
 import '../public/shared/units.js';
 
 const U = globalThis.StructsUnits;
@@ -155,16 +155,19 @@ async function map(link) {
   const attacker = raider ? who.get(raider.owner) || { id: raider.owner, name: raider.owner } : null;
   const name = planet?.name || planet?.id || focusFleet.id;
   const subject = link.kind === 'fleet' ? `Fleet ${link.id}` : link.kind === 'player' ? `${owner?.name || link.id}'s planet` : `Planet ${name}`;
-  const raidLine = attacker ? ` Under raid by ${attacker.name}.` : '';
+  // The holder's side, as the card counts it; a fleet linked while raiding is the raider, not the raided.
+  const deployed = units.filter((u) => u.side !== 'attacker').length;
+  const raiding = focusFleet && raider && focusFleet.owner === raider.owner;
+  const raidLine = !attacker ? '' : raiding ? ` Raiding ${owner?.name || 'its holder'}.` : ` Under raid by ${attacker.name}.`;
   return {
     title: `${subject} · Structs map`,
-    description: `${subject}${planet && !subject.includes(name) ? ` at ${name}` : ''}${planet ? ` (${planet.id})` : ''}, ${units.length} structs deployed.`
+    description: `${subject}${planet && !subject.includes(name) ? ` at ${name}` : ''}${planet && !subject.includes(planet.id) && name !== planet.id ? ` (${planet.id})` : ''}, ${deployed} ${deployed === 1 ? 'struct' : 'structs'} deployed.`
       + (planet ? ` Shield ${planet.shield ?? 0}, ${U.fmtOre(num(planet.ore) || 0)} ore.` : '') + raidLine,
     model: {
       planet: planet && { id: planet.id, name, shield: num(planet.shield), ore: num(planet.ore), status: planet.status },
       owner, attacker, units, focus: link.id, height,
     },
-    og: { planet: planet && { id: planet.id, name, shield: num(planet.shield), ore: num(planet.ore) }, owner, attacker, units, subject },
+    og: { planet: planet && { id: planet.id, name, shield: num(planet.shield), ore: num(planet.ore), status: planet.status }, owner, attacker, units, subject, kind: link.kind, id: link.id },
   };
 }
 
@@ -189,7 +192,7 @@ async function provider(link) {
   const tokenGuild = guildDenom ? await db.guild(guildDenom[1]) : null;
   const rate = denom === 'ualpha'
     ? { value: U.fmtAlpha(num(pr.rate_amount)), denomLabel: 'alpha', denomIcon: 'sui-icon-alpha-matter' }
-    : { value: String(pr.rate_amount), denomLabel: tokenGuild?.tag || denom, denomIcon: null };
+    : { value: pr.rate_amount == null ? null : String(pr.rate_amount), denomLabel: tokenGuild?.tag || denom, denomIcon: null };
   const span = (b) => U.fmtDuration(Number(b) * SECONDS_PER_BLOCK);
   const p = {
     id: pr.id,
@@ -247,6 +250,20 @@ async function sim(link) {
   }));
   const count = (s) => units.filter((u) => u.side === s).length;
   const level = LEVEL_NAME[layout.difficulty];
+  // A result that does not decode, or claims more losses than a side fielded,
+  // is dropped: the link still shows its battle.
+  let result = link.result ? decodeResult(link.result) : null;
+  if (result && (result.stats.player.lost > count('defender') || result.stats.computer.lost > count('attacker'))) result = null;
+  if (result) {
+    const { verdict: v } = verdict(result);
+    const blocks = `${result.blocks} ${result.blocks === 1 ? 'block' : 'blocks'}`;
+    return {
+      title: `${v} vs ${level} in ${clock(result.seconds)} · Structs`,
+      description: `Lost ${result.stats.player.lost} of ${count('defender')} structs, ${blocks}. Can you beat it?`,
+      model: { layout, result },
+      og: { layout, units, level, result },
+    };
+  }
   return {
     title: `Simulator challenge · ${level} · Structs`,
     description: `A ${level.toLowerCase()} fleet battle: your ${count('defender')} structs against ${count('attacker')}. Open it in Structs and try to win.`,

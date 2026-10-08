@@ -1,49 +1,291 @@
 /* structs.app — only what the game's own stylesheets do not already do.
  *
+ * A page is one SUI window: a panel holding a nav screen and a body screen,
+ * centred on the game's page texture and drawn at the game's 2× UI scale on
+ * wide screens (main.css scales the whole UI 2× from 1152px). The window,
+ * nav, buttons, badges and the subject's card are sui.css and playercard.css;
+ * this file only places them.
+ *
  * Tokens only, never a fallback colour (`var(--x, #hex)` lets a misspelt
- * token paint an invented colour). The layout, frame, nav, buttons and every
- * card come from sui.css, main.css and the shared card components.
+ * token paint an invented colour).
  */
 
-/* main.css centres everything on the body; a page of content reads left. */
-.site-page {
+body {
+  margin: 0;
+}
+
+.site {
+  display: flex;
+  min-height: 100vh;
   box-sizing: border-box;
+  padding: var(--spacing-xl);
+  align-items: center;
+  justify-content: center;
+}
+
+.site-scale {
   width: 100%;
-  max-width: 640px;
-  margin: 0 auto;
-  padding: var(--spacing-lg) var(--spacing-md);
+  max-width: 400px;
+}
+.site-scale.site-mod-home { max-width: 368px; }
+
+@media (min-width: 1152px) {
+  .site-scale { zoom: 2; }
+}
+
+.site-nav {
+  overflow: hidden;
+}
+
+.site-body {
+  display: flex;
+  overflow: visible;
+  padding: var(--spacing-lg);
+  flex-direction: column;
   gap: var(--spacing-lg);
   text-align: left;
 }
 
-.site-home {
-  padding: var(--spacing-lg) var(--spacing-md);
-  gap: var(--spacing-lg);
+/* ── home ─────────────────────────────────────────────────────────────── */
+
+.site-body.site-mod-home {
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+  text-align: center;
 }
 
-.site-title {
-  align-self: stretch;
-  margin: 0;
-  color: var(--text-body);
-  overflow-wrap: anywhere;
-}
-
-.site-tagline { margin: 0; }
-
-/* The preview image is the hero: the same picture the link unfurls with. */
-.site-preview {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 2px solid var(--border-player-dark);
+/* The mark on the game's starfield. */
+.site-hero {
+  display: flex;
+  padding: var(--spacing-xl) 0 var(--spacing-md);
+  justify-content: center;
+  background: url("/img/tiles/space/space-2-2-middle-middle.png") repeat;
   image-rendering: pixelated;
 }
 
-.site-actions {
+/* img.glitch-logo's own recolour (main.css). */
+.site-logo {
+  display: block;
+  filter: brightness(0) saturate(100%) invert(58%) sepia(39%) saturate(263%) hue-rotate(156deg) brightness(90%) contrast(84%);
+}
+
+.site-home {
   display: flex;
-  flex-wrap: wrap;
+  padding: var(--spacing-xl);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.site-home h1,
+.site-home p {
+  margin: 0;
+}
+
+.site-buttons {
+  display: flex;
+  margin-top: var(--spacing-sm);
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--spacing-sm);
+}
+
+.site-also a {
+  color: var(--text-body);
+  font: inherit;            /* sui.css sets every link at 16px; small print stays small */
+  text-decoration: none;
+}
+.site-also a:hover { color: var(--accent-primary); }
+
+/* ── a link's page ────────────────────────────────────────────────────── */
+
+/* The name is the page's heading, set as the card's own title line; on a narrow
+ * phone a long name wraps rather than losing its end. */
+.pc-card h1.pc-name {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: normal;
+}
+.pc-card h1.pc-name .pc-nm { white-space: normal; overflow-wrap: anywhere; }
+
+/* Title lines stay inside the header beside the badge; a long one ellipsises, a .site-wrap one wraps. */
+.pc-card .sui-planet-card-header-label { flex: 1 1 auto; min-width: 0; }
+.pc-card .sui-planet-card-header-label-title { min-width: 0; max-width: 100%; }
+.pc-card .sui-planet-card-header-label-title > * { max-width: 100%; }
+.pc-card .sui-planet-card-header-label-title > .site-wrap,
+.pc-card .sui-planet-card-header-label-title > .pc-guild { white-space: normal; overflow-wrap: anywhere; }
+
+/* Readings set as rows (provider, reactor): the hint left, the value right, a value past every limit cut. */
+.pc-card .pc-reads { min-width: 0; }
+.pc-card .pc-reads.site-mod-rows .pc-res { display: flex; width: 100%; min-width: 0; }
+.site-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+
+/* The record: as many columns as fit (a label like REPELLED needs 80px). */
+.pc-card .pc-record {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: var(--spacing-md) var(--spacing-lg);
+}
+.pc-card .pc-rec-v.site-mod-small { font-size: 8px; line-height: 16px; }
+
+.pc-card .sui-screen-btn-flex-wrapper { align-self: stretch; }
+
+/* The preview picture, where the subject is a board (a map, a battle). */
+.site-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.site-reactor {
+  flex: none;
+  width: 64px;
+  height: 92px;
+  image-rendering: pixelated;
+}
+
+.site-emblem {
+  display: flex;
+  flex: none;
+  width: 72px;
+  height: 72px;
+  box-sizing: content-box;
+  border: 1px solid var(--border-subtle);
+  align-items: center;
   justify-content: center;
+  background: var(--surface-default);
+  color: var(--accent-primary);
+}
+
+.pc-card .pc-reads.site-mod-rows {
+  align-items: stretch;
+}
+.pc-card .pc-reads.site-mod-rows .pc-res {
+  justify-content: space-between;
+}
+
+.site-raid {
+  display: flex;
+  align-self: stretch;
+  padding: var(--spacing-md);
+  align-items: center;
   gap: var(--spacing-md);
+  background: var(--surface-enemy-body);
+  color: var(--text-enemy-highlight);
+  text-align: left;
+}
+.site-raid .sui-text-label { color: var(--text-enemy-primary); }
+
+/* Hulls, most kills first: the hull on its battleground, its name, kills and losses. */
+.site-hulls {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--spacing-sm);
+  list-style: none;
+}
+.site-hull {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  text-align: left;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.site-hull .pc-rec-v { color: var(--text-player-primary); }
+.site-hull > .sui-text-label { min-width: 0; overflow-wrap: anywhere; }
+.site-hull .site-lost { color: var(--text-enemy-primary); }
+
+/* The debrief's tallies: a label, the player's figure, the computer's. */
+.site-tallies {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+.site-tally {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px 84px;
+  padding: var(--spacing-sm) 0;
+  border-top: 1px solid var(--border-subtle);
+  align-items: center;
+  column-gap: var(--spacing-md);
+}
+.site-tally:first-child { border-top: 0; }
+.site-tally > :not(:first-child) { text-align: right; }
+
+.site-terminal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  text-align: left;
+}
+.site-terminal .pc-person { flex-wrap: wrap; white-space: normal; }
+.site-terminal code {
+  font: inherit;
+  color: var(--text-body);
+  white-space: nowrap;
+}
+
+.site-more {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  text-align: left;
+}
+.site-more h2 { margin: 0; }
+
+.site-row {
+  display: flex;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border);
+  align-items: center;
+  gap: var(--spacing-md);
+  color: var(--text-body);
+  text-decoration: none;
+  text-align: left;
+}
+.site-row:hover { background: var(--surface-player-highlight); }
+.site-row .sui-icon-md { color: var(--accent-primary); }
+.site-row-text {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+.site-row-text .sui-text-label { color: var(--accent-primary); }
+
+/* A 48×32 window onto a piece of game art on its own ground. */
+.site-art {
+  display: flex;
+  flex: none;
+  width: 48px;
+  height: 32px;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  image-rendering: pixelated;
+}
+.site-art img {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+}
+.site-art .pc-pfp { border: 0; background: transparent; }
+.site-art.t-space { background: url("/img/tiles/space/space-2-2-middle-middle.png") repeat; }
+.site-art.t-air { background: url("/img/tiles/air/air-2-2-middle-middle.png") repeat; }
+.site-art.t-land { background: url("/img/tiles/land/land-2-2-middle-middle.png") repeat; }
+.site-art.t-water { background: url("/img/tiles/water/water-2-2-middle-middle.png") repeat; }
+
+.site-one {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* The open did nothing (the app is not installed): the download steps forward. */
@@ -57,53 +299,9 @@
   to { outline-color: var(--accent-primary-active); }
 }
 
-.site-downloads {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  align-self: stretch;
-  gap: var(--spacing-xs) var(--spacing-lg);
-  text-align: center;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.site-downloads a,
-.site-footer a,
-.site-version {
-  color: var(--text-body);
-  text-decoration: none;
-}
-.site-downloads a:hover,
-.site-footer a:hover,
-.site-version:hover { color: var(--accent-primary); }
+/* The copy button says it worked. */
+.site-copied { color: var(--accent-primary-active); }
 
-.site-version { align-self: center; }
-
-.site-detail {
-  display: flex;
-  flex-direction: column;
-  align-self: stretch;
-  gap: var(--spacing-md);
-}
-.site-detail:empty { display: none; }
-
-.site-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--spacing-xs) var(--spacing-lg);
-  padding-top: var(--spacing-md);
-  border-top: 1px solid var(--border-subtle);
-  align-self: stretch;
-}
-
-/* The external links share the nav bar with the page tabs, pinned right. */
-.site-nav-links {
-  display: flex;
-  margin-left: auto;
-}
-
-/* A narrow phone: only the page tabs keep the bar; the footer carries the links. */
-@media (max-width: 480px) {
-  .site-nav-links { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sui-screen-btn.site-nudge { animation: none; }
 }

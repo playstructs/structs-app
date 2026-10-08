@@ -62,3 +62,15 @@ test('simulator codes are bounded base64url', () => {
   assert.equal(parse('/sim/a+b/'), null);
   assert.equal(parse('/sim/' + 'A'.repeat(2001)), null);
 });
+
+test('a simulator result rides after its battle', () => {
+  const link = parse('/sim/AQYJ_-x0/AQABAGEAwgIOEwMCBQQMCwEBBA');
+  assert.deepEqual(link, { view: 'sim', code: 'AQYJ_-x0', result: 'AQABAGEAwgIOEwMCBQQMCwEBBA' });
+  assert.equal(path(link), '/sim/AQYJ_-x0/AQABAGEAwgIOEwMCBQQMCwEBBA');
+  assert.equal(appUrl(link), 'structs://sim/AQYJ_-x0/AQABAGEAwgIOEwMCBQQMCwEBBA');
+  assert.deepEqual(parse('structs://sim/AQYJ_-x0/AQAB'), { view: 'sim', code: 'AQYJ_-x0', result: 'AQAB' });
+  // A result segment that is not one never loses its battle.
+  assert.deepEqual(parse('/sim/AQYJ_-x0/' + 'A'.repeat(65)), { view: 'sim', code: 'AQYJ_-x0' });
+  assert.equal(canon('/sim/AQYJ_-x0/a+b'), '/sim/AQYJ_-x0');
+  assert.equal(parse('/sim/AQYJ_-x0/AQAB/more'), null);
+});

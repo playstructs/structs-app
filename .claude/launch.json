@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "structs-app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["src/server.js"],
+      "env": { "PORT": "8099", "PUBLIC_ORIGIN": "http://localhost:8099" },
+      "port": 8099
+    }
+  ]
+}

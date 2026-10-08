@@ -16,7 +16,11 @@ const cache = new Map();
 export function png(view, og, linkText) {
   const draw = cards[view];
   if (!draw) throw Error('no preview for ' + view);
-  const svg = draw(og, linkText);
+  return renderSvg(draw(og, linkText));
+}
+
+/** A preview's SVG → PNG bytes. */
+export function renderSvg(svg) {
   return new Resvg(svg, {
     fitTo: { mode: 'original' },
     font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: FONT_BODY },

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
-import { encode, decode, COMMAND_TYPE } from '../src/simcode.js';
+import { encode, decode, COMMAND_TYPE, encodeResult, decodeResult, verdict, clock } from '../src/simcode.js';
 
 const AMBITS = ['space', 'air', 'land', 'water'];
 
@@ -59,4 +59,43 @@ test('type ids agree with the simulator catalogue', (t) => {
   const types = ctx.window.SimulatorTypes.types;
   assert.equal(types.find((x) => x.type === 'Command Ship').id, COMMAND_TYPE);
   assert.ok(types.every((x) => x.id >= 1 && x.id <= 31), 'type ids fit in 5 bits');
+});
+
+/* Results (structs-universe proposals/sim-results-link.md). */
+const RESULT = {
+  version: 1, winner: 'player', forfeit: false, stalemate: null, revision: 1, blocks: 97, seconds: 194,
+  stats: { player: { lost: 2, attacks: 14, damage: 19, evaded: 3, blocked: 2, countered: 5 }, computer: { lost: 4, attacks: 12, damage: 11, evaded: 1, blocked: 1, countered: 4 } },
+};
+
+test("a result is the spec's 26 characters and round-trips", () => {
+  const code = encodeResult(RESULT);
+  assert.equal(code, 'AQABAGEAwgIOEwMCBQQMCwEBBA');   // the spec's own example
+  assert.deepEqual(decodeResult(code), RESULT);
+});
+
+test('result numbers saturate, never wrap', () => {
+  const r = decodeResult(encodeResult({ ...RESULT, blocks: 70000, seconds: 1e9, stats: { player: { lost: 300 }, computer: {} } }));
+  assert.equal(r.blocks, 65535);
+  assert.equal(r.seconds, 65535);
+  assert.equal(r.stats.player.lost, 255);
+});
+
+test('impossible results are refused', () => {
+  const bytes = (b) => btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const base = [1, 0, 1, 0, 97, 0, 194, 2, 14, 19, 3, 2, 5, 4, 12, 11, 1, 1, 4];
+  assert.ok(decodeResult(bytes(base)));
+  assert.equal(decodeResult(bytes([2, ...base.slice(1)])), null);           // unknown version
+  assert.equal(decodeResult(bytes([1, 0 | 4, ...base.slice(2)])), null);    // a forfeit the player won
+  assert.equal(decodeResult(bytes([1, 0 | (1 << 3), ...base.slice(2)])), null); // a stalemate that is not a draw
+  assert.equal(decodeResult(bytes([1, 0x20, ...base.slice(2)])), null);     // reserved bits set
+  assert.equal(decodeResult(bytes(base.slice(0, 18))), null);              // short
+  assert.equal(decodeResult('!!!'), null);
+});
+
+test("a result reads in the debrief's own words", () => {
+  assert.deepEqual(verdict(RESULT), { verdict: 'Victory', reason: 'Computer command ship destroyed' });
+  assert.equal(verdict({ ...RESULT, winner: 'computer', forfeit: true }).reason, 'Player ended the battle');
+  assert.equal(verdict({ ...RESULT, winner: 'draw', stalemate: 'quiet' }).reason, 'Stalemate - 100 blocks without a hit');
+  assert.equal(clock(194), '03:14');
+  assert.equal(clock(65535), '1092:15+');
 });

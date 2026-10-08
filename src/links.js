@@ -41,8 +41,11 @@ const ALIASES = {
 };
 
 const ID_RE = /^(\d{1,2})-(\d{1,12})$/;
-/* A simulator challenge code: base64url, bounded. */
+/* A simulator challenge code: base64url, bounded. A result rides after it as
+ * one more segment (/sim/<code>/<result>); the loader decides whether it is a
+ * valid result, and a bad one never loses the battle. */
 const SIM_RE = /^[A-Za-z0-9_-]{4,2000}$/;
+const RESULT_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 export function kindOf(id) {
   const m = ID_RE.exec(String(id || ''));
@@ -58,7 +61,8 @@ function viewName(word) {
  * A path (or a structs:// URL) → a link, or null.
  *
  *   { view: 'map', id: '9-61', kind: 'fleet' }
- *   { view: 'sim', code: '…' }
+ *   { view: 'sim', code: '…' }             a simulator challenge
+ *   { view: 'sim', code: '…', result: '…' } the same battle, with how it went
  *   { view: 'home' }
  */
 export function parse(input) {
@@ -69,7 +73,10 @@ export function parse(input) {
   if (parts.length === 0) return { view: 'home' };
 
   if (parts[0].toLowerCase() === 'sim') {
-    return parts.length === 2 && SIM_RE.test(parts[1]) ? { view: 'sim', code: parts[1] } : null;
+    if (parts.length === 2 && SIM_RE.test(parts[1])) return { view: 'sim', code: parts[1] };
+    // A result segment that is not even shaped like one still leaves a good battle: canonical, it is just /sim/<code>.
+    if (parts.length === 3 && SIM_RE.test(parts[1])) return RESULT_RE.test(parts[2]) ? { view: 'sim', code: parts[1], result: parts[2] } : { view: 'sim', code: parts[1] };
+    return null;
   }
   if (parts.length > 2) return null;
 
@@ -89,10 +96,10 @@ function decodeURIComponentSafe(p) {
   try { return decodeURIComponent(p); } catch { return ''; }
 }
 
-/** The canonical path for a link: /map/9-61, /sim/<code>, /. */
+/** The canonical path for a link: /map/9-61, /sim/<code>, /sim/<code>/<result>, /. */
 export function path(link) {
   if (!link || link.view === 'home') return '/';
-  if (link.view === 'sim') return '/sim/' + link.code;
+  if (link.view === 'sim') return '/sim/' + link.code + (link.result ? '/' + link.result : '');
   return '/' + link.view + '/' + link.id;
 }
 

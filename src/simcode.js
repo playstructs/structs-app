@@ -124,3 +124,75 @@ export function decode(code) {
     return null;
   }
 }
+
+/* ── Results: https://structs.app/sim/<code>/<result> ─────────────────────
+ * How a battle went, appended to the battle's own link as one more path
+ * segment (structs-universe proposals/sim-results-link.md; the codec is
+ * frontend/simcode.js's, copied as it is). 19 bytes, 26 characters:
+ *
+ *   0      version (1)
+ *   1      outcome: bits 0-1 winner (0 player · 1 computer · 2 draw),
+ *          bit 2 forfeit, bits 3-4 stalemate (0 none · 1 moves · 2 quiet)
+ *   2      rules revision (the simulator's combat + computer tuning)
+ *   3, 4   blocks played, uint16
+ *   5, 6   battle seconds, uint16
+ *   7-12   player:   lost, attacks, damage, evaded, blocked, counter damage
+ *   13-18  computer: the same six
+ *
+ * Numbers saturate (255 / 65535) rather than wrap. Self-reported: a result
+ * is a claim, not a proof — battles are not replayable. */
+export const RESULT_VERSION = 1;
+export const RULES_REVISION = 1;            // 2026-10-07: land opening, tuned computer
+const WINNERS = ['player', 'computer', 'draw'];
+const STALEMATES = [null, 'moves', 'quiet'];
+const TALLY = ['lost', 'attacks', 'damage', 'evaded', 'blocked', 'countered'];
+const u8 = (n) => { n = Math.floor(Number(n) || 0); return n < 0 ? 0 : n > 255 ? 255 : n; };
+const u16 = (n) => { n = Math.floor(Number(n) || 0); return n < 0 ? 0 : n > 65535 ? 65535 : n; };
+
+/** A result → its 26-character code. Throws on an outcome the format cannot hold. */
+export function encodeResult(r) {
+  const w = WINNERS.indexOf(r.winner), st = STALEMATES.indexOf(r.stalemate || null);
+  if (w < 0 || st < 0) throw Error('unsupported result');
+  const out = [RESULT_VERSION, w | (r.forfeit ? 4 : 0) | (st << 3), u8(r.revision == null ? RULES_REVISION : r.revision)];
+  const blocks = u16(r.blocks), secs = u16(r.seconds);
+  out.push(blocks >> 8, blocks & 0xff, secs >> 8, secs & 0xff);
+  for (const side of ['player', 'computer']) {
+    const t = (r.stats && r.stats[side]) || {};
+    for (const k of TALLY) out.push(u8(t[k]));
+  }
+  return toB64url(out);
+}
+
+/** A result code → the result, or null for anything that is not a valid version-1 result. */
+export function decodeResult(code) {
+  let b;
+  try { b = fromB64url(String(code)); } catch { return null; }
+  if (b.length !== 19 || b[0] !== RESULT_VERSION || (b[1] & 0xe0)) return null;
+  const winner = WINNERS[b[1] & 3], stalemate = STALEMATES[(b[1] >> 3) & 3], forfeit = !!(b[1] & 4);
+  if (!winner || stalemate === undefined) return null;
+  if (forfeit && winner !== 'computer') return null;
+  if (stalemate && winner !== 'draw') return null;
+  const stats = {};
+  let i = 7;
+  for (const side of ['player', 'computer']) { stats[side] = {}; for (const k of TALLY) stats[side][k] = b[i++]; }
+  return { version: RESULT_VERSION, winner, forfeit, stalemate, revision: b[2], blocks: (b[3] << 8) | b[4], seconds: (b[5] << 8) | b[6], stats };
+}
+
+/* The debrief's own words (structs-universe frontend/simulator.js showDebrief), told in the third person:
+ * a shared result is read by people who did not play it, so "you" becomes "player". */
+const QUIET_MOVES = 10, QUIET_BLOCKS = 100;
+export function verdict(r) {
+  const v = r.winner === 'player' ? 'Victory' : r.winner === 'computer' ? 'Defeat' : 'Draw';
+  const reason = r.forfeit ? 'Player ended the battle'
+    : v === 'Victory' ? 'Computer command ship destroyed'
+    : v === 'Defeat' ? 'Player command ship destroyed'
+    : r.stalemate === 'quiet' ? `Stalemate - ${QUIET_BLOCKS} blocks without a hit`
+    : r.stalemate === 'moves' ? `Stalemate - ${QUIET_MOVES} command ship moves without a hit`
+    : 'Both command ships destroyed';
+  return { verdict: v, reason };
+}
+
+/** The simulator's clock, mm:ss with unbounded minutes; the saturated top value reads "at least". */
+export function clock(sec) {
+  return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0') + (sec >= 65535 ? '+' : '');
+}

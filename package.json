@@ -6,7 +6,8 @@
     "test": "node --test test/*.test.js",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "sync": "scripts/sync.sh"
+    "sync": "scripts/sync.sh",
+    "previews": "node scripts/previews.mjs"
   },
   "keywords": [],
   "author": "",
