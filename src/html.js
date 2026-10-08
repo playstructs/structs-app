@@ -114,7 +114,7 @@ function frame(navLabel, body, { home = false, tall = false } = {}) {
         <div class="sui-screen sui-screen-full-width">
           <nav class="sui-screen-nav site-nav" aria-label="Site">
             <div class="sui-screen-nav-items">${items}</div>
-            <a class="sui-screen-nav-item" href="${ABOUT_URL}" rel="noopener">${home ? 'About the game' : 'About'}</a>
+            <a class="sui-screen-nav-item" href="${ABOUT_URL}" rel="noopener">${home ? 'playstructs.com' : 'About'}</a>
           </nav>
         </div>
         <div class="sui-screen sui-screen-full-width">

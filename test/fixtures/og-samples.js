@@ -156,10 +156,3 @@ export const simResult = {
 };
 
 export const home = { typical: {} };
-
-/* The link each sample would be shared as (the nav shows it). */
-export const LINKS = {
-  player: (o) => `structs.app/player/${o.player.id}`, record: (o) => `structs.app/record/${o.player.id}`, tally: (o) => `structs.app/tally/${o.player.id}`,
-  map: (o) => `structs.app/map/${o.id}`, provider: (o) => `structs.app/provider/${o.provider.id}`, reactor: (o) => `structs.app/reactor/${o.reactor.id}`,
-  sim: () => 'structs.app/sim/AQIBBQAiAAEAAgADAAQABQAGA', simResult: () => 'structs.app/sim/AQIBBQAiAAEAAgADAAQABQAGA/AQABAGEAwgIOEwMCBQQMCwEBBA', home: () => 'structs.app/',
-};

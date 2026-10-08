@@ -13,10 +13,10 @@ const TTL = Number(process.env.CACHE_TTL_MS || 5 * 60 * 1000);
 const MAX = 500;
 const cache = new Map();
 
-export function png(view, og, linkText) {
+export function png(view, og) {
   const draw = cards[view];
   if (!draw) throw Error('no preview for ' + view);
-  return renderSvg(draw(og, linkText));
+  return renderSvg(draw(og));
 }
 
 /** A preview's SVG → PNG bytes. */

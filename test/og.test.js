@@ -33,16 +33,16 @@ function runs(svg) {
 
 const VIEW = { simResult: 'sim' };
 for (const [card, set] of Object.entries(samples)) {
-  if (card === 'LINKS') continue;
   for (const [name, og] of Object.entries(set)) {
     test(`${card} · ${name}: renders, and every line fits`, () => {
-      const svg = cards[VIEW[card] || card](og, samples.LINKS[card](og));
+      const svg = cards[VIEW[card] || card](og);
       const png = renderSvg(svg);
       assert.equal(png.readUInt32BE(16), 1200);
       assert.equal(png.readUInt32BE(20), 630);
 
       const all = runs(svg);
       assert.ok(all.length > 0 || card === 'home');
+      assert.ok(!all.some((r) => /structs\.app/i.test(r.text)), 'the nav names the view, not the link');
       const nav = (r) => r.top < 52;
       for (const r of all) {
         // The nav sits in its screen (12–588); the body's text stays inside the body screen (12–588 × 58–299).

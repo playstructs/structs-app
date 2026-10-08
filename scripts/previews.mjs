@@ -19,10 +19,10 @@ fs.mkdirSync(out, { recursive: true });
 const VIEW = { simResult: 'sim' };
 let count = 0;
 for (const [card, set] of Object.entries(samples)) {
-  if (card === 'LINKS' || (only && !only.includes(card))) continue;
+  if (only && !only.includes(card)) continue;
   for (const [name, og] of Object.entries(set)) {
     const view = VIEW[card] || card;
-    const svg = cards[view](og, samples.LINKS[card](og));
+    const svg = cards[view](og);
     fs.writeFileSync(path.join(out, `${card}-${name}.svg`), svg);
     fs.writeFileSync(path.join(out, `${card}-${name}.png`), renderSvg(svg));
     count++;

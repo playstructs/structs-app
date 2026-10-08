@@ -40,7 +40,7 @@ function complete(html) {
 }
 
 for (const [card, set] of Object.entries(samples)) {
-  if (card === 'LINKS' || card === 'home') continue;
+  if (card === 'home') continue;
   for (const [name, og] of Object.entries(set)) {
     test(`${card} · ${name}: a complete page with the way into the app`, () => {
       const link = LINK[card](og);
@@ -93,6 +93,7 @@ test('the home and not-found pages offer the app, and the platforms this visitor
   assert.match(home, /Download for macOS/);
   assert.match(home, /Also for <a[^>]*>Windows<\/a>, <a[^>]*>Linux<\/a> and <a[^>]*>Intel Mac<\/a>/);
   assert.match(home, /v0\.1\.458/);
+  assert.match(home, /href="https:\/\/playstructs\.com" rel="noopener">playstructs\.com<\/a>/);
   assert.doesNotMatch(home, /AI agents|structs\.ai/i);
   const lost = notFoundPage(release, 'curl/8');
   complete(lost);

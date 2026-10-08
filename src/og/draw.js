@@ -441,12 +441,12 @@ export function ground(ambit, x, y, w, h) {
 export const BODY = { x: 24, y: 70, w: 552, h: 217 };
 
 /**
- * A whole preview: the page, an SUI panel, the nav screen (Structs · <view>,
- * the link on the right) and the body screen; `body` is drawn inside, in 1×
- * pixels. Returns the SVG document.
+ * A whole preview: the page, an SUI panel, the nav screen (Structs · <view>)
+ * and the body screen; `body` is drawn inside, in 1× pixels. Returns the SVG
+ * document.
  */
-export function previewWindow(view, linkText, body) {
-  const nav = navScreen(view, linkText);
+export function previewWindow(view, body) {
+  const nav = navScreen(view);
   return svgDoc(
     tiled('img/sui/page/page-background.png', 0, 0, W, H, 8, { fill: T.page })
     + `<g transform="scale(${SCALE})">`
@@ -465,7 +465,7 @@ export function svgDoc(body) {
 }
 
 /* `.sui-screen-nav` inside a `.sui-screen`: items 16 apart, the active one underlined. */
-function navScreen(view, linkText) {
+function navScreen(view) {
   let out = screen(6, 4, 588, 46) + rect(10, 8, 580, 38, T.borderPlayer) + rect(12, 10, 576, 34, T.playerHighlight);
   const items = [['Structs', false]];
   if (view) items.push([view, true]);
@@ -475,10 +475,6 @@ function navScreen(view, linkText) {
     out += line(x + 10, 18, label, ['EH', 8], { lh: 16, fill: active ? T.playerActive : T.player });
     if (active) out += rect(x, 40, w, 2, T.playerActive);
     x += w + 16;
-  }
-  if (linkText) {
-    const room = 578 - (x - 16 + 10);
-    out += line(578, 18, linkText, ['EH', 8], { lh: 16, fill: T.player, anchor: 'end', room });
   }
   return out;
 }

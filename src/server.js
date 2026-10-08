@@ -20,7 +20,6 @@ import { linkPage, homePage, notFoundPage, robots, sitemap, ORIGIN } from './htm
 
 const app = new Hono();
 const PORT = Number(process.env.PORT || 8080);
-const HOST = ORIGIN.replace(/^https?:\/\//, '');
 
 app.use('*', async (c, next) => {
   await next();
@@ -71,7 +70,7 @@ function image(c, buf) {
   return c.body(buf);
 }
 
-app.get('/og/home.png', async (c) => image(c, await cached('home', () => png('home', {}, HOST + '/'))));
+app.get('/og/home.png', async (c) => image(c, await cached('home', () => png('home', {}))));
 
 app.get('/og/*', async (c) => {
   const rest = c.req.path.replace(/^\/og/, '').replace(/\.png$/, '');
@@ -81,7 +80,7 @@ app.get('/og/*', async (c) => {
   try {
     const buf = await cached(key, async () => {
       const data = await load(link);
-      return data ? png(link.view, data.og, HOST + key) : null;
+      return data ? png(link.view, data.og) : null;
     });
     return buf ? image(c, buf) : c.notFound();
   } catch (e) {

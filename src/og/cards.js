@@ -55,7 +55,7 @@ function stack(top, h, gap, items) {
 
 /* ── player ───────────────────────────────────────────────────────────────── */
 
-export function player({ player: p, counters: c = {} }, linkText) {
+export function player({ player: p, counters: c = {} }) {
   const name = nameOf(p);
   const named = name !== p.id;
   const nameSt = fit(name, BODY.w, NAME);
@@ -122,7 +122,7 @@ export function player({ player: p, counters: c = {} }, linkText) {
     [lineOf(nameSt), (y) => line(BODY.x, y, name, nameSt, { room: BODY.w })],
     [rowH, (y) => screen(BODY.x, y, 152, 152, { fill: T.surface }) + portrait(p.pfp, BODY.x + 4, y + 4, 144) + stack(y, rowH, 6, right)],
   ]);
-  return previewWindow('Player', linkText, body);
+  return previewWindow('Player', body);
 }
 
 /* ── record ───────────────────────────────────────────────────────────────── */
@@ -136,7 +136,7 @@ function nameBlock(p, x, room, nameSteps, subSteps) {
   return { name, named, guild, sub, nameSt: fit(name, room, nameSteps), subSt: sub ? fit(sub, room, subSteps) : null };
 }
 
-export function record({ player: p, counters: c }, linkText) {
+export function record({ player: p, counters: c }) {
   const TX = BODY.x + 74 + 12, TW = BODY.w - 74 - 12;
   const h = nameBlock(p, TX, TW, NAME, [DZ16, DZ8]);
   const STEPS = [['EH', 24], ['DZ', 24], ['DZ', 16], ['DZ', 8]], ROOM = 125;
@@ -178,12 +178,12 @@ export function record({ player: p, counters: c }, linkText) {
         + line(tx + 5, ty + 31 + (24 - lineOf(v.st)) / 2, v.text, v.st, { fill: color || T.body, room: ROOM });
     }).join('')],
   ]);
-  return previewWindow('Record', linkText, body);
+  return previewWindow('Record', body);
 }
 
 /* ── tally ────────────────────────────────────────────────────────────────── */
 
-export function tally({ player: p, hulls }, linkText) {
+export function tally({ player: p, hulls }) {
   // Kills by hull: the hulls that killed or were lost, most kills first (losses break ties).
   const touched = (hulls || []).filter((x) => x.kills || x.lost)
     .sort((a, b) => (b.kills || 0) - (a.kills || 0) || (b.lost || 0) - (a.lost || 0));
@@ -230,7 +230,7 @@ export function tally({ player: p, hulls }, linkText) {
     + line(BODY.x + BODY.w / 2, y + 102, 'No kills or losses yet', ['EH', 8], { lh: 16, fill: T.hint, anchor: 'middle' });
 
   const body = stack(BODY.y, BODY.h, 10, [[headH, header], shown.length ? [162, columns] : [164, empty]]);
-  return previewWindow('Tally', linkText, body);
+  return previewWindow('Tally', body);
 }
 
 /* ── boards: map, simulator ───────────────────────────────────────────────── */
@@ -257,7 +257,7 @@ function bandsOf(units, ours) {
 
 /* ── map ──────────────────────────────────────────────────────────────────── */
 
-export function map({ planet, owner, attacker, units, kind, id }, linkText) {
+export function map({ planet, owner, attacker, units, kind, id }) {
   const LW = 276;
   const away = !planet;
   const unnamed = planet && (!planet.name || planet.name === planet.id);
@@ -321,14 +321,14 @@ export function map({ planet, owner, attacker, units, kind, id }, linkText) {
 
   const body = stack(BODY.y, BODY.h, 8, left)
     + board(BOARD.x, BOARD.y, BOARD.w, bandsOf(units, (u) => u.side !== 'attacker'), { fog: !attacker });
-  return previewWindow('Map', linkText, body);
+  return previewWindow('Map', body);
 }
 
 /* ── provider ─────────────────────────────────────────────────────────────── */
 
 const POLICY_BADGE = { default: 'default', warning: 'warning', destructive: 'destructive' };
 
-export function provider({ provider: p, policy }, linkText) {
+export function provider({ provider: p, policy }) {
   const title = `Provider ${p.id}`;
   const pol = badgeFor(policy);
   const TX = BODY.x + 40 + 12, TW = BODY.w - 40 - 12 - pol.w - 12;
@@ -391,7 +391,7 @@ export function provider({ provider: p, policy }, linkText) {
         + line(BODY.x + 46, cy + 16, ownerLabel.text, ownerLabel.st, { room: BODY.w - 46 });
     }],
   ]);
-  return previewWindow('Provider', linkText, body);
+  return previewWindow('Provider', body);
 }
 
 function badgeFor(policy) {
@@ -402,7 +402,7 @@ function badgeFor(policy) {
 
 /* ── reactor ──────────────────────────────────────────────────────────────── */
 
-export function reactor({ reactor: r }, linkText) {
+export function reactor({ reactor: r }) {
   const RX = BODY.x + 152 + 16, RW = BODY.w - 152 - 16;
   const title = `Reactor ${r.id}`;
   const titleSt = fit(title, RW, [['EH', 24], ['EH', 16], DZ16, DZ8]);
@@ -435,22 +435,22 @@ export function reactor({ reactor: r }, linkText) {
     + tiled('img/tiles/space/space-2-2-middle-middle.png', BODY.x + 4, AY + 4, 144, 192, 128, { fill: T.surface })
     + img('img/reactor-64x92.png', BODY.x + 12, AY + 8, 128, 184)
     + stack(BODY.y, BODY.h, 6, right);
-  return previewWindow('Reactor', linkText, body);
+  return previewWindow('Reactor', body);
 }
 
 /* ── simulator: challenge and result ──────────────────────────────────────── */
 
 const LEVEL_BADGE = { Easy: 'default', Difficult: 'warning', Hard: 'destructive' };
 
-export function sim(og, linkText) {
-  return og.result ? simResult(og, linkText) : simChallenge(og, linkText);
+export function sim(og) {
+  return og.result ? simResult(og) : simChallenge(og);
 }
 
 function simBoard(units, top = BOARD.y) {
   return board(BOARD.x, top, BOARD.w, bandsOf(units, (u) => u.side !== 'attacker'));
 }
 
-function simChallenge({ layout, units, level }, linkText) {
+function simChallenge({ layout, units, level }) {
   const LW = 276;
   const count = (s) => units.filter((u) => u.side === s).length;
   const you = count('defender'), cpu = count('attacker');
@@ -471,12 +471,12 @@ function simChallenge({ layout, units, level }, linkText) {
     [70, (y) => sideBox(BODY.x, y, 'You', you, charge.player, T.player, T.player) + sideBox(BODY.x + 141, y, 'Computer', cpu, charge.computer, T.enemy, T.enemy)],
     [24, (y) => glyph('icon-refresh-12', BODY.x, y, 24) + line(BODY.x + 28, y + 2, blockS, DZ16)],
   ]) + simBoard(units);
-  return previewWindow('Simulator', linkText, body);
+  return previewWindow('Simulator', body);
 }
 
 const sat = (v, top) => (v >= top ? `${v}+` : String(v));
 
-function simResult({ units, level, result }, linkText) {
+function simResult({ units, level, result }) {
   const LW = 276;
   const { verdict: v, reason } = verdict(result);
   const tone = { Victory: T.player, Defeat: T.enemy, Draw: T.warning }[v];
@@ -517,7 +517,7 @@ function simResult({ units, level, result }, linkText) {
     ty += 21;
   }
   body += simBoard(units, BODY.y);
-  return previewWindow('Simulator', linkText, body);
+  return previewWindow('Simulator', body);
 }
 
 /* ── home ─────────────────────────────────────────────────────────────────── */
