@@ -64,6 +64,20 @@ body {
   image-rendering: pixelated;
 }
 
+/* Wide screens draw at 2×, where the stacked card (starfield over the way in)
+ * ran ~1,050px tall and fell off an ordinary window. Side by side it is about
+ * half that, so the whole page shows without scrolling; a window too short
+ * even for that drops back to 1×. */
+@media (min-width: 1152px) {
+  .site-scale.site-mod-home { max-width: 640px; }
+  .site-body.site-mod-home { flex-direction: row; }
+  .site-mod-home .site-hero { flex: 0 0 auto; align-items: center; padding: var(--spacing-xl) var(--spacing-xxl); }
+  .site-mod-home .site-home { flex: 1 1 0; min-width: 0; justify-content: center; }
+}
+@media (min-width: 1152px) and (max-height: 659px) {
+  .site-scale { zoom: 1; }
+}
+
 /* img.glitch-logo's own recolour (main.css). */
 .site-logo {
   display: block;

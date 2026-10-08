@@ -154,7 +154,7 @@ function getApp(release, ua, { primary, label } = {}) {
 
 export function homePage(release, ua) {
   const title = 'Structs — a 5X space strategy game';
-  const description = 'Get the Structs desktop app for macOS, Windows and Linux. Every structs.app link opens straight into it.';
+  const description = 'Download Structs for macOS, Windows and Linux, or play in your browser.';
   const ld = [{
     '@context': 'https://schema.org', '@type': 'WebSite', name: SITE, url: ORIGIN + '/',
   }, {
@@ -167,12 +167,12 @@ export function homePage(release, ua) {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     sameAs: [ABOUT_URL, 'https://github.com/playstructs'],
   }];
-  const body = hero('Structs', 'Get the desktop app. Every structs.app link opens straight into it.', release, ua);
+  const body = hero('Structs', null, release, ua);
   return head({ title, description, canonical: ORIGIN + '/', image: ogImage({ view: 'home' }), imageAlt: 'Structs', ld })
     + frame('', body, { home: true });
 }
 
-/* The mark on the starfield, a heading, a line, and the way in. */
+/* The mark on the starfield, a heading, an optional line, and the way in. */
 function hero(heading, line, release, ua) {
   const get = getApp(release, ua, { primary: true });
   const also = others(release, get.best);
@@ -182,7 +182,7 @@ function hero(heading, line, release, ua) {
   return `            <div class="site-hero"><img class="site-logo" src="/img/sui/logo/logo-structs.gif" alt="" width="128" height="124"></div>
             <div class="site-home">
               <h1 class="sui-text-display">${h(heading)}</h1>
-              <p class="sui-text-paragraph">${h(line)}</p>
+              ${line ? `<p class="sui-text-paragraph">${h(line)}</p>` : ''}
               <div class="site-buttons">
                 ${get.html}
                 <a id="open-app" class="sui-screen-btn sui-mod-secondary" href="structs://" data-app-url="structs://"><i class="sui-icon-md icon-link-out"></i>Open Structs</a>
@@ -193,7 +193,7 @@ function hero(heading, line, release, ua) {
 }
 
 export function notFoundPage(release, ua) {
-  const body = hero('Nothing at these coordinates', 'That link does not point at anything in the galaxy. The app has everything that does.', release, ua);
+  const body = hero('Nothing at these coordinates', null, release, ua);
   return head({ title: 'Not found · Structs', description: 'That link does not point at anything in Structs.', canonical: ORIGIN + '/', image: ogImage({ view: 'home' }), imageAlt: 'Structs', noindex: true })
     + frame('', body, { home: true });
 }
