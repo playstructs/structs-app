@@ -15,6 +15,12 @@
     var open = document.getElementById('open-app');
     var get = document.getElementById('get-app');
     if (!open || !get) return;
+    // An iPad says it is a Mac, and cannot install the Mac app: it gets the releases page, and no nudge.
+    if (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) {
+      get.href = get.getAttribute('data-releases');
+      get.lastChild.textContent = 'Download Structs';
+      return;
+    }
     open.addEventListener('click', function () {
       var left = false;
       var gone = function () { left = true; };
@@ -30,17 +36,28 @@
     });
   }
 
-  /* [data-copy] buttons copy their link, and say so for a moment. */
+  /* [data-copy] buttons, drawn hidden, appear where the browser can copy: they
+   * copy their link, and say so for a moment, on screen and to a screen reader. */
   function wireCopy() {
+    if (!(navigator.clipboard && navigator.clipboard.writeText)) return;
     Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+      var icon = btn.querySelector('i');
+      var status = btn.parentNode.querySelector('[role="status"]');
+      var say = function (text) { if (status) status.textContent = text; };
+      var timer = 0;
+      btn.hidden = false;
       btn.addEventListener('click', function () {
-        var text = btn.getAttribute('data-copy');
-        var done = function () {
+        navigator.clipboard.writeText(btn.getAttribute('data-copy')).then(function () {
           btn.classList.add('site-copied');
-          btn.setAttribute('aria-label', 'Link copied');
-          setTimeout(function () { btn.classList.remove('site-copied'); btn.setAttribute('aria-label', 'Copy link'); }, 1600);
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () {});
+          icon.classList.replace('icon-copy', 'icon-success');
+          say('Link copied');
+          clearTimeout(timer);
+          timer = setTimeout(function () {
+            btn.classList.remove('site-copied');
+            icon.classList.replace('icon-success', 'icon-copy');
+            say('');
+          }, 1600);
+        }, function () { say('Could not copy the link'); });
       });
     });
   }

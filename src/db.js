@@ -208,6 +208,7 @@ export async function tally(id) {
 export async function provider(id) {
   return one(`
     select pr.id, pr.substation_id, pr.rate_amount, pr.rate_denom, pr.access_policy,
+           structs.unit_display_format(pr.rate_amount, pr.rate_denom) as rate_display,
            pr.capacity_minimum, pr.capacity_maximum, pr.duration_minimum, pr.duration_maximum,
            pr.owner, coalesce(lb.agreement_count, 0) as agreements
       from structs.provider pr left join structs.api_leaderboard_provider lb on lb.provider_id = pr.id
@@ -233,5 +234,6 @@ export async function structsTypes() {
 /* ── the sitemap ──────────────────────────────────────────────────────────── */
 
 export async function topPlayers(limit) {
-  return all(`select player_id as id from structs.api_leaderboard_player order by alpha_value desc nulls last limit $1`, [limit]);
+  return all(`select lb.player_id as id, p.planet_id from structs.api_leaderboard_player lb left join structs.player p on p.id = lb.player_id
+    order by lb.alpha_value desc nulls last limit $1`, [limit]);
 }

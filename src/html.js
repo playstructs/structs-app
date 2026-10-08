@@ -19,6 +19,7 @@ import { appUrl, path as linkPath, VIEWS } from './links.js';
 import { forAgent, RELEASES_PAGE } from './release.js';
 import { verdict, clock } from './simcode.js';
 import { reading, textWidth } from './og/draw.js';
+import { BOARD } from './og/cards.js';
 import '../public/shared/units.js';
 import '../public/shared/pfp.js';
 
@@ -100,13 +101,13 @@ ${ld ? `<script type="application/ld+json">${json(ld)}</script>` : ''}
 
 /* `.sui-panel` > nav screen + body screen. The nav names the view; the
  * playstructs.com link is for people who have never heard of the game. */
-function frame(navLabel, body, { home = false } = {}) {
+function frame(navLabel, body, { home = false, tall = false } = {}) {
   const items = navLabel
     ? `<a class="sui-screen-nav-item" href="/">Structs</a><span class="sui-screen-nav-item sui-mod-active">${h(navLabel)}</span>`
     : '<span class="sui-screen-nav-item sui-mod-active">Structs</span>';
   return `<body>
-<div class="site">
-  <div class="site-scale${home ? ' site-mod-home' : ''}">
+<div class="site${home ? ' site-mod-home' : ''}">
+  <div class="site-scale${home ? ' site-mod-home' : ''}${tall ? ' site-mod-tall' : ''}">
     <div class="sui-panel sui-theme-player">
       <div class="sui-panel-edge-left"></div>
       <div class="sui-panel-chunk sui-mod-grow sui-mod-shrink">
@@ -134,10 +135,12 @@ ${body}
 /* ── downloads ────────────────────────────────────────────────────────── */
 
 const SHORT = { 'mac-arm': 'macOS', 'mac-intel': 'Intel Mac', windows: 'Windows', 'linux-appimage': 'Linux' };
+const ORDER = ['mac-arm', 'windows', 'linux-appimage', 'mac-intel'];
+const platforms = (release) => release.downloads.filter((d) => SHORT[d.key]).sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
 
 /* The other platforms, as a phrase: "Windows, Linux and Intel Mac". */
 function others(release, best) {
-  const links = release.downloads.filter((d) => SHORT[d.key] && d !== best).map((d) => `<a href="${h(d.url)}">${h(SHORT[d.key])}</a>`);
+  const links = platforms(release).filter((d) => d !== best).map((d) => `<a href="${h(d.url)}">${h(SHORT[d.key])}</a>`);
   if (!links.length) return '';
   return links.length === 1 ? links[0] : `${links.slice(0, -1).join(', ')} and ${links[links.length - 1]}`;
 }
@@ -147,7 +150,8 @@ function getApp(release, ua, { primary, label } = {}) {
   const best = forAgent(release, ua);
   const cls = `sui-screen-btn ${primary ? 'sui-mod-primary' : 'sui-mod-secondary'}`;
   const text = label || (best ? `Download for ${SHORT[best.key] || best.label}` : 'Download Structs');
-  return { best, html: `<a id="get-app" class="${cls}" href="${h(best ? best.url : release.url || RELEASES_PAGE)}"${best ? '' : ' rel="noopener"'}><i class="sui-icon-md icon-computer"></i>${h(text)}</a>` };
+  const all = release.url || RELEASES_PAGE;
+  return { best, html: `<a id="get-app" class="${cls}" href="${h(best ? best.url : all)}" data-releases="${h(all)}"${best ? '' : ' rel="noopener"'}><i class="sui-icon-md icon-computer" aria-hidden="true"></i><span>${h(text)}</span></a>` };
 }
 
 /* ── home ─────────────────────────────────────────────────────────────── */
@@ -185,7 +189,7 @@ function hero(heading, line, release, ua) {
               ${line ? `<p class="sui-text-paragraph">${h(line)}</p>` : ''}
               <div class="site-buttons">
                 ${get.html}
-                <a id="open-app" class="sui-screen-btn sui-mod-secondary" href="structs://" data-app-url="structs://"><i class="sui-icon-md icon-link-out"></i>Open Structs</a>
+                <a id="open-app" class="sui-screen-btn sui-mod-secondary" href="structs://" data-app-url="structs://"><i class="sui-icon-md icon-link-out" aria-hidden="true"></i>Open Structs</a>
               </div>
               ${also ? `<p class="sui-text-paragraph sui-text-hint site-also">Also for ${also}</p>` : ''}
               <p class="sui-text-tiny sui-text-hint site-also">${version}<a href="${PLAY_URL}" rel="noopener">play in your browser</a></p>
@@ -195,7 +199,7 @@ function hero(heading, line, release, ua) {
 export function notFoundPage(release, ua) {
   const body = hero('Nothing at these coordinates', null, release, ua);
   return head({ title: 'Not found · Structs', description: 'That link does not point at anything in Structs.', canonical: ORIGIN + '/', image: ogImage({ view: 'home' }), imageAlt: 'Structs', noindex: true })
-    + frame('', body, { home: true });
+    + frame('', body, { home: true, tall: true });
 }
 
 /* ── a link's page ────────────────────────────────────────────────────── */
@@ -220,12 +224,13 @@ function battery(charge) {
   if (charge == null) return '';
   let lvl = LEVELS.length - 1;
   for (let i = 0; i < LEVELS.length; i++) if (charge <= LEVELS[i]) { lvl = i; break; }
-  return `<div class="sui-screen-battery pc-batt" title="Charge">${[0, 1, 2, 3, 4].map((i) => `<div class="sui-battery-chunk${i < lvl ? ' sui-mod-filled' : ''}"></div>`).join('')}</div>`;
+  return `<div class="sui-screen-battery pc-batt" role="img" aria-label="Charge ${lvl} of 5" title="Charge">${[0, 1, 2, 3, 4].map((i) => `<div class="sui-battery-chunk${i < lvl ? ' sui-mod-filled' : ''}"></div>`).join('')}</div>`;
 }
 
-const res = (value, icon, title) => `<span class="pc-res" title="${h(title)}">${h(value)} ${icon}</span>`;
-/* A record figure; one too wide for its 84px column (DirectiveZero 16, measured as the previews measure) steps down to 8. */
-const rec = (value, label, accent) => `<div class="pc-rec"><div class="pc-rec-v${textWidth(value, 'DZ', 16) > 84 ? ' site-mod-small' : ''}"${accent ? ' style="color: var(--text-player-primary)"' : ''}>${h(value)}</div><div class="pc-rec-l">${h(label)}</div></div>`;
+/* A reading: a figure and the game's icon for it, named for anyone who cannot see the icon. */
+const res = (value, icon, title) => `<span class="pc-res" title="${h(title)}">${h(value)} ${icon.replace('></i>', ` role="img" aria-label="${h(title)}"></i>`)}</span>`;
+/* A record figure; one too wide for its column (DirectiveZero 16, measured as the previews measure) steps down to 8. */
+const rec = (value, label, accent) => `<div class="pc-rec"><div class="pc-rec-v${textWidth(value, 'DZ', 16) > 100 ? ' site-mod-small' : ''}"${accent ? ' style="color: var(--text-player-primary)"' : ''}>${h(value)}</div><div class="pc-rec-l">${h(label)}</div></div>`;
 
 /* `.sui-planet-card.pc-card`: the title block (the h1, the id, a third line), a badge, then the body. */
 function card({ name, id, sub, badge, body, wrapId }) {
@@ -251,7 +256,7 @@ function doors(link, release, ua, { open = 'Open in Structs', target } = {}) {
   const url = appUrl(target || link);
   return `<div class="sui-screen-btn-flex-wrapper">
                   ${getApp(release, ua, { label: 'Get the app' }).html}
-                  <a id="open-app" class="sui-screen-btn sui-mod-primary" href="${h(url)}" data-app-url="${h(url)}"><i class="sui-icon-md icon-link-out"></i>${h(open)}</a>
+                  <a id="open-app" class="sui-screen-btn sui-mod-primary" href="${h(url)}" data-app-url="${h(url)}"><i class="sui-icon-md icon-link-out" aria-hidden="true"></i>${h(open)}</a>
                 </div>`;
 }
 
@@ -286,8 +291,15 @@ const NO_ART = new Set(['continental power plant', 'world engine']);
 /* A 48×32 window onto a piece of game art on its own ground. */
 function art(kind, value, ground = 'space') {
   if (kind === 'pfp') return `<span class="site-art t-${ground}">${portrait(value, 32)}</span>`;
-  if (kind === 'icon') return `<span class="site-art t-${ground}"><i class="sui-icon ${value}"></i></span>`;
+  if (kind === 'icon') return `<span class="site-art t-${ground}"><i class="sui-icon ${value}" aria-hidden="true"></i></span>`;
   return `<span class="site-art t-${ground}"><img src="${h(value)}" alt=""></span>`;
+}
+
+/* The board alone, cut from a map or challenge preview (1200×630, the window at 2×). */
+const pct = (v) => `${+(v * 100).toFixed(3)}%`;
+function boardShot(src, alt) {
+  const crop = `width: ${pct(600 / BOARD.w)}; left: ${pct(-BOARD.x / BOARD.w)}; top: ${pct(-BOARD.y / BOARD.h)}`;
+  return `<div class="site-board" style="aspect-ratio: ${BOARD.w} / ${BOARD.h}"><img class="site-shot" src="${h(src)}" width="1200" height="630" alt="${h(alt)}" style="${crop}"></div>`;
 }
 
 /* The subject's other links, each with a picture of what it opens. */
@@ -302,7 +314,7 @@ ${list.map((r) => `              <a class="site-row" href="${h(r.href)}">
                   <span class="sui-text-label">${h(r.label)}</span>
                   <span class="sui-text-tiny sui-text-hint site-one" data-ellipsis>${h(ORIGIN.replace(/^https?:\/\//, '') + r.href)}</span>
                 </span>
-                <i class="sui-icon-md icon-chevron-right"></i>
+                <i class="sui-icon-md icon-chevron-right" aria-hidden="true"></i>
               </a>`).join('\n')}
             </section>`;
 }
@@ -311,7 +323,7 @@ ${list.map((r) => `              <a class="site-row" href="${h(r.href)}">
 function playerRows(p, here) {
   return [
     here !== 'player' && { href: `/player/${p.id}`, label: 'Profile', art: art('pfp', p.pfp) },
-    here !== 'map' && { href: `/map/${p.id}`, label: 'Home planet', art: art('sprite', SPRITE('Command Ship'), 'space') },
+    here !== 'map' && p.planetId && { href: `/map/${p.id}`, label: 'Home planet', art: art('sprite', SPRITE('Command Ship'), 'space') },
     here !== 'record' && { href: `/record/${p.id}`, label: 'Record', art: art('icon', 'sui-icon-destroyed') },
     here !== 'tally' && { href: `/tally/${p.id}`, label: 'Tally', art: art('sprite', SPRITE('Tank'), 'land') },
   ];
@@ -346,12 +358,16 @@ const CARD = {
     // Kills by hull: the hulls that killed or were lost, most kills first (losses break ties).
     const hulls = (og.hulls || []).filter((x) => x.kills || x.lost)
       .sort((a, b) => (b.kills || 0) - (a.kills || 0) || (b.lost || 0) - (a.lost || 0));
+    // A figure past 99,999 steps down to 8, so the hull's name keeps its room; past 999, on a phone (site.css).
+    const small = (v) => (textWidth(v, 'DZ', 16) > 72 ? ' site-mod-small' : textWidth(v, 'DZ', 16) > 36 ? ' site-mod-wide' : '');
     const list = hulls.length
       ? `<ul class="site-hulls" aria-label="Kills by hull">
+                  <li class="site-hull site-hull-head" aria-hidden="true"><span class="pc-rec-l">Kills by hull</span><span class="pc-rec-l">Kills</span><span class="pc-rec-l">Lost</span></li>
 ${hulls.map((x) => {
+    // Lower case in the source: the face draws capitals anyway, and browsers will not hyphenate a capitalised word.
     const k = String(x.type || '').toLowerCase();
     const pic = NO_ART.has(k) ? art('icon', 'sui-icon-deployed-structs', 'land') : art('sprite', SPRITE(x.type), GROUND[k] || 'land');
-    return `                  <li class="site-hull">${pic}<span class="sui-text-label">${h(x.type)}</span><span class="pc-rec-v">${h(n(x.kills))}</span><span class="sui-text-tiny site-lost">lost ${h(n(x.lost))}</span></li>`;
+    return `                  <li class="site-hull">${pic}<span class="sui-text-label">${h(k)}</span><span class="pc-rec-v${small(n(x.kills))}">${h(n(x.kills))}<span class="site-sr"> kills</span></span><span class="pc-rec-v site-lost${small(n(x.lost))}">${h(n(x.lost))}<span class="site-sr"> lost</span></span></li>`;
   }).join('\n')}
                 </ul>`
       : '<p class="sui-text-paragraph sui-text-hint">No kills or losses yet.</p>';
@@ -378,17 +394,17 @@ ${hulls.map((x) => {
                   <div class="pc-reads">
                     ${holder ? `<span class="pc-res"><span class="pc-res-hint">${away ? 'Commanded by' : drained ? 'Last held by' : 'Held by'}</span></span><span class="pc-res" style="white-space: normal; text-align: right; overflow-wrap: anywhere">${h(holder)}</span>` : ''}
                     ${away ? '<span class="pc-res"><span class="pc-res-hint">Away from any planet</span></span>' : ''}
-                    <span class="pc-res">${reads}</span>
+                    <span class="site-reads">${reads}</span>
                   </div>
                 </div>
                 ${raid}
-                <img class="site-shot" src="${h(ctx.image)}" width="1200" height="630" alt="${h(ctx.description)}">
+                ${boardShot(ctx.image, ctx.description)}
                 ${ctx.doors}`;
     const rows = [
       og.owner && { href: `/player/${og.owner.id}`, label: away ? 'Commander' : drained ? 'Last holder' : 'Holder', art: art('pfp', og.owner.pfp) },
       og.attacker && { href: `/player/${og.attacker.id}`, label: 'Raider', art: art('pfp', og.attacker.pfp) },
     ];
-    return { card: card({ name, id: away ? '' : '#' + planet.id, badge: { text: away ? 'Fleet' : 'Planet' }, body }), more: more(`More on ${name}`, rows) };
+    return { card: card({ name, id: away ? '' : '#' + planet.id, badge: { text: away ? 'Fleet' : 'Planet' }, body }), more: more(unnamed ? 'More on this planet' : `More on ${name}`, rows) };
   },
   provider(link, og, ctx) {
     const p = og.provider;
@@ -396,50 +412,52 @@ ${hulls.map((x) => {
     const MOD = { default: 'sui-mod-default', warning: 'sui-mod-warning', destructive: 'sui-mod-destructive' };
     const alpha = p.rate.denomLabel === 'alpha';
     const amount = alpha ? reading(p.rate.value) : p.rate.value == null ? null : String(p.rate.value).replace(/\B(?=(\d{3})+$)/g, ',');
-    const rate = amount == null ? 'No rate set' : alpha ? amount : `${amount} ${p.rate.denomLabel}`;
+    const rate = amount == null ? 'No rate set' : alpha ? amount : [amount, p.rate.denomLabel].filter(Boolean).join(' ');
     const range = (r) => { const a = reading(r.min) || '-', b = reading(r.max) || '-'; return a === b ? a : `${a}-${b}`; };
     const owner = p.owner || {};
     const ownerName = `${owner.tag ? `[${owner.tag}] ` : ''}${owner.name || owner.id}`;
-    const body = `                <div class="sui-planet-card-body-content pc-body">
-                  <div class="site-emblem"><i class="sui-icon-xl icon-transfers"></i></div>
+    const guildOwned = /^0-/.test(String(owner.id));
+    const body = `                <div class="sui-planet-card-body-content pc-body site-mod-wrap">
+                  <div class="site-emblem"><i class="sui-icon-xl icon-transfers" aria-hidden="true"></i></div>
                   <div class="pc-reads site-mod-rows">
-                    <span class="pc-res" title="Price, per mW per block"><span class="pc-res-hint">Price</span><span class="site-val" data-ellipsis style="color: var(--text-player-primary)">${h(rate)}</span></span>
-                    ${amount == null ? '' : '<span class="pc-res"><span></span><span class="sui-text-paragraph sui-text-hint">per mW per block</span></span>'}
-                    <span class="pc-res" title="Capacity"><span class="pc-res-hint">Capacity</span><span class="site-val" data-ellipsis>${h(range(p.capacity))}</span></span>
-                    <span class="pc-res" title="Duration"><span class="pc-res-hint">Duration</span><span class="site-val" data-ellipsis>${h(range(p.duration))}</span></span>
-                    <span class="pc-res" title="Agreements"><span class="pc-res-hint">Agreements</span><span class="site-val">${h(n(p.agreements))}</span></span>
+                    <span class="pc-res"><span class="pc-res-hint">Price</span><span class="site-val" style="color: var(--text-player-primary)">${h(rate)}</span></span>
+                    ${amount == null ? '' : '<span class="pc-res"><span></span><span class="sui-text-tiny sui-text-hint site-val">per mW per block</span></span>'}
+                    <span class="pc-res"><span class="pc-res-hint">Capacity</span><span class="site-val">${h(range(p.capacity))}</span></span>
+                    <span class="pc-res"><span class="pc-res-hint">Duration</span><span class="site-val">${h(range(p.duration))}</span></span>
+                    <span class="pc-res"><span class="pc-res-hint">Agreements</span><span class="site-val">${h(n(p.agreements))}</span></span>
+                    <span class="pc-res"><span class="pc-res-hint">${guildOwned ? 'Guild' : 'Offered by'}</span><span class="site-val">${h(ownerName)}</span></span>
                   </div>
                 </div>
-                <div class="site-terminal"><span class="pc-person">${portrait(owner.pfp, 24)}<span class="sui-text-hint">${/^0-/.test(String(owner.id)) ? 'Offered by guild' : 'Offered by'}</span> <span>${h(ownerName)}</span></span></div>
                 ${ctx.doors}`;
-    const rows = [owner.id && !/^0-/.test(String(owner.id)) && { href: `/player/${owner.id}`, label: 'Offered by', art: art('pfp', owner.pfp) }];
+    const rows = [owner.id && !guildOwned && { href: `/player/${owner.id}`, label: 'Offered by', art: art('pfp', owner.pfp) }];
     return {
-      card: card({ name: `Provider ${p.id}`, id: `Substation ${p.substation}`, badge: { text: policy.text || 'Closed', mod: MOD[policy.mod] || 'sui-mod-destructive' }, body }),
+      card: card({ name: `Provider ${p.id}`, id: `Substation ${p.substation}`, wrapId: true, badge: { text: policy.text || 'Closed', mod: MOD[policy.mod] || 'sui-mod-destructive' }, body }),
       more: more('More on this offer', rows),
     };
   },
   reactor(link, og, ctx) {
     const r = og.reactor;
     const fuel = reading(r.fuel), capacity = reading(r.capacity);
-    const body = `                <div class="sui-planet-card-body-content pc-body">
+    const body = `                <div class="sui-planet-card-body-content pc-body site-mod-wrap">
                   <img class="site-reactor" src="/img/reactor-64x92.png" alt="" width="64" height="92">
                   <div class="pc-reads site-mod-rows">
-                    <span class="pc-res" title="Alpha Matter infused"><span class="pc-res-hint">Infused</span><span class="site-val" data-ellipsis>${h(fuel || '-')}</span><i class="sui-icon sui-icon-alpha-matter"></i></span>
-                    <span class="pc-res" title="Capacity"><span class="pc-res-hint">Capacity</span><span class="site-val" data-ellipsis>${h(capacity || '-')}</span><i class="sui-icon sui-icon-energy"></i></span>
-                    <span class="pc-res" title="Commission"><span class="pc-res-hint">Commission</span><span class="site-val">${h(`${r.commissionPct ?? 0}%`)}</span><i class="sui-icon-md icon-guild" style="color: var(--accent-primary)"></i></span>
-                    <span class="pc-res" title="Infusers"><span class="pc-res-hint">Infusers</span><span class="site-val" data-ellipsis>${h(n(r.infusers))}</span><i class="sui-icon sui-icon-players"></i></span>
+                    <span class="pc-res"><span class="pc-res-hint">Infused</span><span class="site-val">${h(fuel || '-')}<i class="sui-icon sui-icon-alpha-matter" aria-hidden="true"></i></span></span>
+                    <span class="pc-res"><span class="pc-res-hint">Capacity</span><span class="site-val">${h(capacity || '-')}<i class="sui-icon sui-icon-energy" aria-hidden="true"></i></span></span>
+                    <span class="pc-res"><span class="pc-res-hint">Commission</span><span class="site-val">${h(`${r.commissionPct ?? 0}%`)}<i class="sui-icon-md icon-guild" aria-hidden="true" style="color: var(--accent-primary)"></i></span></span>
+                    <span class="pc-res"><span class="pc-res-hint">Infusers</span><span class="site-val">${h(n(r.infusers))}<i class="sui-icon sui-icon-players" aria-hidden="true"></i></span></span>
                   </div>
                 </div>
                 ${ctx.doors}`;
-    return { card: card({ name: `Reactor ${r.id}`, id: '#' + r.id, sub: r.guildLabel || '', badge: { text: 'Reactor' }, body }), more: '' };
+    return { card: card({ name: `Reactor ${r.id}`, id: '', sub: r.guildLabel || '', badge: { text: 'Reactor' }, body }), more: '' };
   },
   sim(link, og, ctx) {
     const LEVEL_MOD = { Easy: 'sui-mod-default', Difficult: 'sui-mod-warning', Hard: 'sui-mod-destructive' };
     const badge = { text: og.level, mod: LEVEL_MOD[og.level] || 'sui-mod-default' };
     const count = (s) => (og.units || []).filter((u) => u.side === s).length;
     if (!og.result) {
-      const body = `                <p class="sui-text-paragraph sui-text-hint">Someone built this battle. Can you win it? Your ${n(count('defender'))} structs against the computer's ${n(count('attacker'))}.</p>
-                <img class="site-shot" src="${h(ctx.image)}" width="1200" height="630" alt="${h(ctx.description)}">
+      const k = count('defender');
+      const body = `                <p class="sui-text-paragraph sui-text-hint">Someone built this battle. Can you win it? Your ${n(k)} ${k === 1 ? 'struct' : 'structs'} against the computer's ${n(count('attacker'))}.</p>
+                ${boardShot(ctx.image, ctx.description)}
                 ${ctx.doors}`;
       return { card: card({ name: 'Challenge', id: '', badge, body }), more: '' };
     }
@@ -464,16 +482,18 @@ ${hulls.map((x) => {
                   <div class="site-tally" role="row"><span role="columnheader"></span><span class="sui-text-label" role="columnheader" style="color: var(--text-player-primary)">Player</span><span class="sui-text-label" role="columnheader" style="color: var(--text-enemy-primary)">Computer</span></div>
 ${ROWS.map(([label, a, b]) => `                  <div class="site-tally" role="row"><span class="sui-text-label sui-text-hint" role="rowheader">${h(label)}</span><span class="sui-text-paragraph" role="cell">${h(a)}</span><span class="sui-text-paragraph" role="cell">${h(b)}</span></div>`).join('\n')}
                 </div>
-                <img class="site-shot" src="${h(ogImage(battle))}" width="1200" height="630" alt="The battle: ${h(count('defender'))} structs against ${h(count('attacker'))}">
+                ${boardShot(ogImage(battle), `The battle: ${count('defender')} ${count('defender') === 1 ? 'struct' : 'structs'} against ${count('attacker')}`)}
                 ${doors(link, ctx.release, ctx.ua, { open: 'Play this battle', target: battle })}`;
     return {
-      card: card({ name: v, id: `vs ${og.level} in ${clock(r.seconds)} - ${blocks}`, wrapId: true, sub: `Rules r${r.revision}`, badge, body }).replace('<h1 class="pc-name">', `<h1 class="pc-name" style="color: ${tone}">`),
-      more: more('The battle', [{ href: linkPath(battle), label: 'Play it yourself', art: art('sprite', SPRITE('Battleship'), 'space') }]),
+      card: card({ name: v, id: `${clock(r.seconds)} - ${blocks}`, wrapId: true, badge, body }).replace('<h1 class="pc-name">', `<h1 class="pc-name" style="color: ${tone}">`),
+      more: more('More on this battle', [{ href: linkPath(battle), label: 'The challenge', art: art('sprite', SPRITE('Battleship'), 'space') }]),
     };
   },
 };
 
-export function linkPage(link, data, release, ua) {
+export function linkPage(given, data, release, ua) {
+  // A result the loader rejected shows the plain battle: the canonical, the preview and the app get that, too.
+  const link = given.view === 'sim' && given.result && !data.og?.result ? { view: 'sim', code: given.code } : given;
   const canonical = ORIGIN + linkPath(link);
   const heading = data.title.replace(/ · Structs.*$/, '');
   const crumbs = {
@@ -495,12 +515,14 @@ export function linkPage(link, data, release, ua) {
   const view = CARD[link.view] ? CARD[link.view](link, data.og, ctx) : { card: `<h1 class="sui-text-display">${h(heading)}</h1>`, more: '' };
   const term = VIEWS[link.view] ? `${VIEWS[link.view].word} ${link.id}` : null;
   const best = forAgent(release, ua);
-  const noApp = release.downloads.filter((d) => SHORT[d.key]).map((d) => `<a href="${h(d.url)}">${h(SHORT[d.key])}</a>`).join(' - ');
+  const noApp = platforms(release).map((d) => `<a href="${h(d.url)}">${h(SHORT[d.key])}</a>`).join(' - ');
+  // The copy button is drawn hidden: site.js shows it where the browser can copy.
   const body = `            ${view.card}
-${term ? `            <div class="site-terminal sui-text-paragraph sui-text-hint">
-              <span>In the Terminal: <code>${h(term)}</code></span>
-              <button class="sui-screen-btn sui-mod-secondary" type="button" data-copy="${h(canonical)}" aria-label="Copy link" title="Copy link"><i class="sui-icon-md icon-copy"></i></button>
-            </div>` : ''}
+            <div class="site-terminal sui-text-paragraph sui-text-hint">
+              <span>${term ? `In the Terminal: <code>${h(term)}</code>` : `Share this ${link.result ? 'result' : 'battle'}`}</span>
+              <button class="sui-screen-btn sui-mod-secondary" type="button" data-copy="${h(canonical)}" aria-label="Copy link" title="Copy link" hidden><i class="sui-icon-md icon-copy" aria-hidden="true"></i></button>
+              <span class="site-sr" role="status"></span>
+            </div>
 ${view.more}
             <p class="sui-text-tiny sui-text-hint site-also" style="margin: 0">No app yet? ${noApp || `<a href="${h(release.url || RELEASES_PAGE)}" rel="noopener">${best ? 'Download Structs' : 'all releases'}</a>`} - <a href="${PLAY_URL}" rel="noopener">play in your browser</a></p>`;
   return head({

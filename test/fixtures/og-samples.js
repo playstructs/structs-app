@@ -20,7 +20,7 @@ const LONG = 'Constance-Sutherland';
 const OVER_GUILD = '[GUILDTAG] The Extremely Long Guild Name Nobody Clamped';
 
 function person(id, name, guildLabel, extra = {}) {
-  return { id, name: name || id, pfp: extra.pfp ?? PFP_A, guildLabel, charge: 5, alpha: 108e6, structs: 14, ...extra };
+  return { id, name: name || id, pfp: extra.pfp ?? PFP_A, guildLabel, planetId: '2-1', charge: 5, alpha: 108e6, structs: 14, ...extra };
 }
 
 const COUNTERS = {
@@ -100,7 +100,7 @@ export const map = {
 const POLICY = { open: { text: 'OPEN', mod: 'default' }, guild: { text: 'GUILD', mod: 'warning' }, closed: { text: 'CLOSED', mod: 'destructive' } };
 const prov = (o) => ({ provider: { substation: '4-4', agreements: 0, ...o }, policy: POLICY[o.policyKey] || POLICY.closed });
 export const provider = {
-  typical: prov({ id: '10-1', policyKey: 'open', rate: { value: '1', denomLabel: 'OH' }, capacity: { min: '1W', max: '1MW' }, duration: { min: '9m', max: '61d' }, owner: owner('1-170', null, 'OH', PFP_B) }),
+  typical: prov({ id: '10-1', policyKey: 'open', rate: { value: '1eep', denomLabel: '' }, capacity: { min: '1W', max: '1MW' }, duration: { min: '9m', max: '61d' }, owner: owner('1-170', null, 'OH', PFP_B) }),
   longest: prov({ id: '10-999', policyKey: 'closed', substation: '4-9999', rate: { value: '1000000', denomLabel: 'uguild.0-12' }, capacity: { min: '1W', max: '999999.99MW' }, duration: { min: '1d', max: '1127301026726695d' }, agreements: 9999, owner: owner('1-99999', LONG, 'ABCDE', PFP_B) }),
   widest: prov({ id: '10-999', policyKey: 'guild', substation: '4-9999', rate: { value: '999999.99Kg', denomLabel: 'alpha' }, capacity: { min: '999999.99MW', max: '999999.99MW' }, duration: { min: '1127301026726695d', max: '1127301026726695d' }, agreements: 9999, owner: owner('1-99999', M20, 'MMMMM', PFP_B) }),
   sparse: prov({ id: '10-7', policyKey: null, substation: '4-1', rate: { value: '—', denomLabel: 'alpha' }, capacity: { min: '—', max: '—' }, duration: { min: '0s', max: '0s' }, agreements: 1, owner: owner('0-5', null, null, null) }),

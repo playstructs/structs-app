@@ -18,7 +18,8 @@ The link grammar is in [docs/links.md](docs/links.md).
   JavaScript. The home page gets people into the desktop app; a link's page
   shows its subject in the game's card frame (`sui-planet-card pc-card`),
   opens it in the app, gives the Terminal command for it, and links the
-  subject's other views. Maps and battles carry their preview picture.
+  subject's other views. Maps and battles show their board, cut from the
+  link's own preview image (`BOARD` in `src/og/cards.js` says where it sits).
   Stylesheet and script URLs carry a content hash, so a deploy is never
   paired with a day-old cached stylesheet.
 - **Preview images** are SUI windows composed in SVG from the game's PNG art

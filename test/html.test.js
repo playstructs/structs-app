@@ -56,10 +56,27 @@ for (const [card, set] of Object.entries(samples)) {
 test('a result page plays its battle, not the result', () => {
   const og = samples.simResult.typical;
   const html = linkPage(LINK.simResult(og), { title: 'Victory vs Hard in 03:14 · Structs', description: 'Lost 2 of 6 structs, 97 blocks. Can you beat it?', model: {}, og }, release, MAC);
-  assert.match(html, new RegExp(`href="structs://sim/${SIM}" data-app-url="structs://sim/${SIM}"><i class="sui-icon-md icon-link-out"></i>Play this battle`));
+  assert.match(html, new RegExp(`href="structs://sim/${SIM}" data-app-url="structs://sim/${SIM}"><i class="sui-icon-md icon-link-out" aria-hidden="true"></i>Play this battle`));
   assert.match(html, />Player<\/span>/);
   assert.match(html, /Computer command ship destroyed/);
   assert.match(html, /name="robots" content="noindex, follow"/);
+  assert.match(html, /Share this result<\/span>\s*<button[^>]*data-copy="[^"]*\/sim\/[^"]+\/AQAB/);
+});
+
+test('a result the loader rejected is not passed on: canonical, preview and app all get the plain battle', () => {
+  const og = samples.sim.typical;
+  const html = linkPage({ view: 'sim', code: SIM, result: 'AAAA' }, { title: 'Simulator challenge · Hard · Structs', description: 'x', model: {}, og }, release, MAC);
+  assert.doesNotMatch(html, /AAAA/);
+  assert.match(html, new RegExp(`rel="canonical" href="[^"]*/sim/${SIM}"`));
+  assert.match(html, /Share this battle/);
+});
+
+test('a player with no planet has no Home planet row', () => {
+  const og = samples.player.typical;
+  const page = (planetId) => linkPage(LINK.player(og), { title: 'x · Structs', description: 'x', model: { player: og.player }, og: { ...og, player: { ...og.player, planetId } } }, release, MAC);
+  assert.match(page('2-1'), /Home planet/);
+  assert.doesNotMatch(page(null), /Home planet/);
+  assert.doesNotMatch(page(''), /Home planet/);
 });
 
 test("other players' names are data, never markup", () => {
@@ -74,7 +91,7 @@ test('the home and not-found pages offer the app, and the platforms this visitor
   const home = homePage(release, MAC);
   complete(home);
   assert.match(home, /Download for macOS/);
-  assert.match(home, /Also for <a[^>]*>Intel Mac<\/a>, <a[^>]*>Windows<\/a> and <a[^>]*>Linux<\/a>/);
+  assert.match(home, /Also for <a[^>]*>Windows<\/a>, <a[^>]*>Linux<\/a> and <a[^>]*>Intel Mac<\/a>/);
   assert.match(home, /v0\.1\.458/);
   assert.doesNotMatch(home, /AI agents|structs\.ai/i);
   const lost = notFoundPage(release, 'curl/8');

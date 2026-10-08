@@ -236,6 +236,8 @@ export function tally({ player: p, hulls }, linkText) {
 /* ── boards: map, simulator ───────────────────────────────────────────────── */
 
 const BOARD_X = BODY.x + 276 + 12, BOARD_W = BODY.w - 276 - 12;
+/** Where the board sits in a map or challenge preview, in the window's 1× pixels: a page shows that piece alone. */
+export const BOARD = { x: BOARD_X, y: BODY.y + (BODY.h - 216) / 2, w: BOARD_W, h: 216 };
 
 /** Units → per-battleground [ours, theirs], command ship first. */
 function bandsOf(units, ours) {
@@ -318,7 +320,7 @@ export function map({ planet, owner, attacker, units, kind, id }, linkText) {
   }
 
   const body = stack(BODY.y, BODY.h, 8, left)
-    + board(BOARD_X, BODY.y + (BODY.h - 216) / 2, BOARD_W, bandsOf(units, (u) => u.side !== 'attacker'), { fog: !attacker });
+    + board(BOARD.x, BOARD.y, BOARD.w, bandsOf(units, (u) => u.side !== 'attacker'), { fog: !attacker });
   return previewWindow('Map', linkText, body);
 }
 
@@ -335,7 +337,7 @@ export function provider({ provider: p, policy }, linkText) {
   // The price: an alpha amount as units.js prints it, or a token amount with its thousands grouped.
   const alpha = p.rate.denomLabel === 'alpha';
   const amount = alpha ? reading(p.rate.value) : p.rate.value == null ? null : String(p.rate.value).replace(/\B(?=(\d{3})+$)/g, ',');
-  const rateText = amount == null ? null : alpha ? amount : `${amount} ${p.rate.denomLabel}`;
+  const rateText = amount == null ? null : alpha ? amount : [amount, p.rate.denomLabel].filter(Boolean).join(' ');
   const unitW = textWidth('per block', 'DZ', 16);
   const RATE_ROOM = BODY.w - 24 - 8 - unitW - 16;
   // DirectiveZero 32's descenders (the g of every alpha rate) would cross the band's rule: such text starts at 24.
@@ -444,8 +446,8 @@ export function sim(og, linkText) {
   return og.result ? simResult(og, linkText) : simChallenge(og, linkText);
 }
 
-function simBoard(units, top = BODY.y + (BODY.h - 216) / 2) {
-  return board(BOARD_X, top, BOARD_W, bandsOf(units, (u) => u.side !== 'attacker'));
+function simBoard(units, top = BOARD.y) {
+  return board(BOARD.x, top, BOARD.w, bandsOf(units, (u) => u.side !== 'attacker'));
 }
 
 function simChallenge({ layout, units, level }, linkText) {

@@ -25,6 +25,11 @@ const SECONDS_PER_BLOCK = 5.28;   // the desktop's blocks_span()
 
 const num = (v) => (v == null ? null : Number(v));
 const guildLabel = (tag, name) => [tag ? `[${tag}]` : '', name || ''].filter(Boolean).join(' ');
+const plural = (k, one, many = one + 's') => `${k} ${k === 1 ? one : many}`;
+/* Someone in share text: their name, or "Player 1-61" when they have none. */
+const called = (p) => (p.name && p.name !== p.id ? p.name : `Player ${p.id}`);
+/* A min-max range as units.js prints it, one figure when both ends agree. */
+const span2 = (r) => (r.min === r.max ? r.min : `${r.min}–${r.max}`);
 
 /* Charge, as the game's ChargeCalculator counts it. */
 function chargeOf(height, lastAction) {
@@ -57,10 +62,10 @@ async function player(link) {
   const [me, rec] = await Promise.all([identity(link.id, height), db.record(link.id)]);
   if (!me) return null;
   const c = rec.counters;
-  const bits = [me.guildLabel, `${U.fmtAlpha(me.alpha)} Alpha`, `${c.kills ?? 0} kills`, `${c.raids_won ?? 0} raids won`];
+  const bits = [me.guildLabel, `${U.fmtAlpha(me.alpha)} Alpha`, plural(c.kills ?? 0, 'kill'), plural(c.raids_won ?? 0, 'raid won', 'raids won')];
   return {
-    title: `${me.name} · Structs`,
-    description: `${me.name} (${me.id})${me.guildLabel ? ' of ' + me.guildLabel : ''}. ${bits.slice(1).join(' · ')}.`,
+    title: `${called(me)} · Structs`,
+    description: `${called(me)}${called(me) === me.name ? ` (${me.id})` : ''}${me.guildLabel ? ' of ' + me.guildLabel : ''}. ${bits.slice(1).join(' · ')}.`,
     model: { player: me, record: rec },
     og: { player: me, counters: c },
   };
@@ -74,8 +79,8 @@ async function record(link) {
   if (!me) return null;
   const c = rec.counters;
   return {
-    title: `${me.name}'s record · Structs`,
-    description: `${c.kills ?? 0} structs destroyed, ${c.cmd_kills ?? 0} Command Ships, ${c.raids_won ?? 0} raids won, ${U.fmtOre(c.ore_seized ?? 0)} ore seized.`,
+    title: `${called(me)}'s record · Structs`,
+    description: `${plural(c.kills ?? 0, 'struct')} destroyed, ${plural(c.cmd_kills ?? 0, 'Command Ship')}, ${plural(c.raids_won ?? 0, 'raid won', 'raids won')}, ${U.fmtOre(c.ore_seized ?? 0)} ore seized.`,
     model: { player: me, record: rec },
     og: { player: me, counters: c },
   };
@@ -88,8 +93,8 @@ async function tally(link) {
   const top = t.hulls.filter((h) => h.kills).sort((a, b) => b.kills - a.kills).slice(0, 3)
     .map((h) => `${h.type} ${h.kills}`);
   return {
-    title: `${me.name}'s hull tally · Structs`,
-    description: top.length ? `Kills by hull — ${top.join(' · ')}.` : `${me.name} has no recorded kills yet.`,
+    title: `${called(me)}'s hull tally · Structs`,
+    description: top.length ? `Kills by hull — ${top.join(' · ')}.` : `${called(me)} has no recorded kills yet.`,
     model: { player: me, tally: t },
     og: { player: me, hulls: t.hulls },
   };
@@ -154,14 +159,14 @@ async function map(link) {
   const owner = who.get(planet?.owner || home?.owner) || null;
   const attacker = raider ? who.get(raider.owner) || { id: raider.owner, name: raider.owner } : null;
   const name = planet?.name || planet?.id || focusFleet.id;
-  const subject = link.kind === 'fleet' ? `Fleet ${link.id}` : link.kind === 'player' ? `${owner?.name || link.id}'s planet` : `Planet ${name}`;
-  // The holder's side, as the card counts it; a fleet linked while raiding is the raider, not the raided.
-  const deployed = units.filter((u) => u.side !== 'attacker').length;
+  const subject = link.kind === 'fleet' ? `Fleet ${link.id}` : link.kind === 'player' ? `${owner ? called(owner) : `Player ${link.id}`}'s planet` : `Planet ${name}`;
+  // The holder's side, as the card counts it; a fleet linked while raiding counts its own.
   const raiding = focusFleet && raider && focusFleet.owner === raider.owner;
-  const raidLine = !attacker ? '' : raiding ? ` Raiding ${owner?.name || 'its holder'}.` : ` Under raid by ${attacker.name}.`;
+  const deployed = units.filter((u) => (raiding ? u.side === 'attacker' : u.side !== 'attacker')).length;
+  const raidLine = !attacker ? '' : raiding ? ` Raiding ${owner ? called(owner) : 'its holder'}.` : ` Under raid by ${called(attacker)}.`;
   return {
     title: `${subject} · Structs map`,
-    description: `${subject}${planet && !subject.includes(name) ? ` at ${name}` : ''}${planet && !subject.includes(planet.id) && name !== planet.id ? ` (${planet.id})` : ''}, ${deployed} ${deployed === 1 ? 'struct' : 'structs'} deployed.`
+    description: `${subject}${planet && !subject.includes(name) ? ` at ${name}` : ''}${planet && !subject.includes(planet.id) && name !== planet.id ? ` (${planet.id})` : ''}, ${plural(deployed, 'struct')} deployed.`
       + (planet ? ` Shield ${planet.shield ?? 0}, ${U.fmtOre(num(planet.ore) || 0)} ore.` : '') + raidLine,
     model: {
       planet: planet && { id: planet.id, name, shield: num(planet.shield), ore: num(planet.ore), status: planet.status },
@@ -188,11 +193,13 @@ async function provider(link) {
   if (!pr) return null;
   const [owner] = await db.people([pr.owner]);
   const denom = String(pr.rate_denom || '');
-  const guildDenom = /^uguild\.(\d+-\d+)$/.exec(denom);
-  const tokenGuild = guildDenom ? await db.guild(guildDenom[1]) : null;
+  // A guild token's price as the game prints it ("1eep", "1.23bleep"); a denomination
+  // the database cannot format stays a raw amount beside its denom.
   const rate = denom === 'ualpha'
     ? { value: U.fmtAlpha(num(pr.rate_amount)), denomLabel: 'alpha', denomIcon: 'sui-icon-alpha-matter' }
-    : { value: pr.rate_amount == null ? null : String(pr.rate_amount), denomLabel: tokenGuild?.tag || denom, denomIcon: null };
+    : pr.rate_amount != null && pr.rate_display
+      ? { value: pr.rate_display, denomLabel: '', denomIcon: null }
+      : { value: pr.rate_amount == null ? null : String(pr.rate_amount), denomLabel: denom, denomIcon: null };
   const span = (b) => U.fmtDuration(Number(b) * SECONDS_PER_BLOCK);
   const p = {
     id: pr.id,
@@ -207,7 +214,9 @@ async function provider(link) {
   const policy = POLICY[pr.access_policy] || POLICY.closedMarket;
   return {
     title: `Energy provider ${p.id} · Structs`,
-    description: `${policy.text} energy offer by ${p.owner.name}: ${rate.value} ${rate.denomLabel} per mW per block, ${p.capacity.min}–${p.capacity.max} for ${p.duration.min}–${p.duration.max}.`,
+    description: `${policy.text[0]}${policy.text.slice(1).toLowerCase()} energy offer by ${called(p.owner)}: `
+      + (rate.value == null ? 'no rate set' : `${[rate.value, rate.denomLabel === 'alpha' ? '' : rate.denomLabel].filter(Boolean).join(' ')} per mW per block`)
+      + `, ${span2(p.capacity)} for ${span2(p.duration)}.`,
     model: { provider: p },
     og: { provider: p, policy },
   };
@@ -229,7 +238,7 @@ async function reactor(link) {
   };
   return {
     title: `Reactor ${r.id}${m.guildLabel ? ' · ' + m.guildLabel : ''} · Structs`,
-    description: `${m.guildLabel || 'Reactor'} ${r.id}: ${m.fuel} Alpha infused, ${m.capacity} capacity, ${commissionPct}% commission, ${m.infusers} infusers.`,
+    description: `${m.guildLabel ? `${m.guildLabel} reactor` : 'Reactor'} ${r.id}: ${m.fuel} Alpha infused, ${m.capacity} capacity, ${commissionPct}% commission, ${plural(m.infusers ?? 0, 'infuser')}.`,
     model: { reactor: m },
     og: { reactor: m },
   };
@@ -259,14 +268,14 @@ async function sim(link) {
     const blocks = `${result.blocks} ${result.blocks === 1 ? 'block' : 'blocks'}`;
     return {
       title: `${v} vs ${level} in ${clock(result.seconds)} · Structs`,
-      description: `Lost ${result.stats.player.lost} of ${count('defender')} structs, ${blocks}. Can you beat it?`,
+      description: `Lost ${result.stats.player.lost} of ${plural(count('defender'), 'struct')}, ${blocks}. Can you beat it?`,
       model: { layout, result },
       og: { layout, units, level, result },
     };
   }
   return {
     title: `Simulator challenge · ${level} · Structs`,
-    description: `A ${level.toLowerCase()} fleet battle: your ${count('defender')} structs against ${count('attacker')}. Open it in Structs and try to win.`,
+    description: `A ${level.toLowerCase()} fleet battle: your ${plural(count('defender'), 'struct')} against ${count('attacker')}. Open it in Structs and try to win.`,
     model: { layout },
     og: { layout, units, level },
   };

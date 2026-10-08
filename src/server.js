@@ -56,7 +56,8 @@ app.get('/robots.txt', (c) => c.text(robots()));
 
 app.get('/sitemap.xml', async (c) => {
   const top = await db.topPlayers(Number(process.env.SITEMAP_PLAYERS || 500)).catch(() => []);
-  const paths = top.flatMap(({ id }) => [`/player/${id}`, `/record/${id}`, `/tally/${id}`, `/map/${id}`]);
+  // A player with no planet has no map to link.
+  const paths = top.flatMap(({ id, planet_id: planet }) => [`/player/${id}`, `/record/${id}`, `/tally/${id}`, ...(planet ? [`/map/${id}`] : [])]);
   c.header('content-type', 'application/xml; charset=utf-8');
   c.header('cache-control', 'public, max-age=3600');
   return c.body(sitemap(paths));
@@ -93,6 +94,7 @@ app.get('/og/*', async (c) => {
 
 app.get('/', async (c) => {
   c.header('cache-control', 'public, max-age=300');
+  c.header('vary', 'User-Agent');   // the download offered depends on the visitor's platform
   return c.html(homePage(await latest(), c.req.header('user-agent')));
 });
 
@@ -114,6 +116,7 @@ app.get('*', async (c) => {
   }
   if (!data) return c.html(notFoundPage(release, ua), 404);
   c.header('cache-control', 'public, max-age=60');
+  c.header('vary', 'User-Agent');   // the download offered depends on the visitor's platform
   return c.html(linkPage(link, data, release, ua));
 });
 

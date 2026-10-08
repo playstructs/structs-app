@@ -19,8 +19,22 @@ body {
   min-height: 100vh;
   box-sizing: border-box;
   padding: var(--spacing-xl);
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+}
+/* A link's page starts at the top, as the game's screens do; the home page sits in the middle. */
+.site.site-mod-home { align-items: center; }
+
+.site [hidden] { display: none !important; }
+
+/* Read aloud, not drawn. */
+.site-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .site-scale {
@@ -29,12 +43,22 @@ body {
 }
 .site-scale.site-mod-home { max-width: 368px; }
 
+/* The game's 2× step. A link's page takes it as soon as 2× fits (its 400px window
+ * and gutters), so browser zoom still enlarges it; the home page keeps the
+ * game's breakpoint, where its side-by-side layout starts. */
+@media (min-width: 848px) {
+  .site-scale:not(.site-mod-home) { zoom: 2; }
+}
 @media (min-width: 1152px) {
   .site-scale { zoom: 2; }
 }
 
 .site-nav {
   overflow: hidden;
+}
+@media (max-width: 359px) {
+  .site-nav .sui-screen-nav-items { gap: var(--spacing-sm); }
+  .site-nav .sui-screen-nav-item { padding-inline: var(--spacing-sm); }
 }
 
 .site-body {
@@ -75,7 +99,11 @@ body {
   .site-mod-home .site-home { flex: 1 1 0; min-width: 0; justify-content: center; }
 }
 @media (min-width: 1152px) and (max-height: 659px) {
-  .site-scale { zoom: 1; }
+  .site-scale.site-mod-home { zoom: 1; }
+}
+/* The not-found card's heading wraps to two lines: it needs a little more height for 2×. */
+@media (min-width: 1152px) and (max-height: 699px) {
+  .site-scale.site-mod-tall { zoom: 1; }
 }
 
 /* img.glitch-logo's own recolour (main.css). */
@@ -105,10 +133,12 @@ body {
   gap: var(--spacing-sm);
 }
 
+.site-body > .site-also { text-align: center; }
 .site-also a {
   color: var(--text-body);
   font: inherit;            /* sui.css sets every link at 16px; small print stays small */
   text-decoration: none;
+  white-space: nowrap;
 }
 .site-also a:hover { color: var(--accent-primary); }
 
@@ -122,7 +152,7 @@ body {
   line-height: inherit;
   white-space: normal;
 }
-.pc-card h1.pc-name .pc-nm { white-space: normal; overflow-wrap: anywhere; }
+.pc-card h1.pc-name .pc-nm { color: inherit; white-space: normal; overflow-wrap: anywhere; }
 
 /* Title lines stay inside the header beside the badge; a long one ellipsises, a .site-wrap one wraps. */
 .pc-card .sui-planet-card-header-label { flex: 1 1 auto; min-width: 0; }
@@ -131,25 +161,70 @@ body {
 .pc-card .sui-planet-card-header-label-title > .site-wrap,
 .pc-card .sui-planet-card-header-label-title > .pc-guild { white-space: normal; overflow-wrap: anywhere; }
 
-/* Readings set as rows (provider, reactor): the hint left, the value right, a value past every limit cut. */
+/* Readings set as rows (provider, reactor): the hint left, the value right with its icon;
+ * a long value wraps under its hint rather than losing its end. The art goes above
+ * the rows only when the card is too narrow for both. */
 .pc-card .pc-reads { min-width: 0; }
-.pc-card .pc-reads.site-mod-rows .pc-res { display: flex; width: 100%; min-width: 0; }
-.site-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.pc-card .pc-body.site-mod-wrap { flex-wrap: wrap; }
+.pc-card .pc-reads.site-mod-rows { flex: 1 1 180px; }
+.pc-card .pc-reads.site-mod-rows .pc-res {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  column-gap: var(--spacing-md);
+  white-space: normal;
+}
+.site-val {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
 
-/* The record: as many columns as fit (a label like REPELLED needs 80px). */
+/* The map's readings: each figure with its icon, the pairs wrapping as pairs. */
+.site-reads {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-sm) var(--spacing-lg);
+}
+.site-reads > .pc-res { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+
+/* The record, two by two: four across cannot hold a label like REPELLED (80px) and its figure in the window. */
 .pc-card .pc-record {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-md) var(--spacing-lg);
 }
-.pc-card .pc-rec-v.site-mod-small { font-size: 8px; line-height: 16px; }
+.pc-card .pc-rec-v.site-mod-small, .site-hull .pc-rec-v.site-mod-small { font-size: 8px; line-height: 16px; }
+/* On a phone a hull's four-digit figures step down too, or its name breaks mid-word. */
+@media (max-width: 431px) {
+  .site-hull .pc-rec-v.site-mod-wide { font-size: 8px; line-height: 16px; }
+  .site-hull .site-art { width: 40px; }
+}
 
-.pc-card .sui-screen-btn-flex-wrapper { align-self: stretch; }
+.pc-card .sui-screen-btn-flex-wrapper { align-self: stretch; flex-wrap: wrap; }
+/* Side by side while each label fits on one line; stacked on a narrow phone. */
+.pc-card .sui-screen-btn-flex-wrapper > .sui-screen-btn { flex: 1 1 104px; }
 
-/* The preview picture, where the subject is a board (a map, a battle). */
+/* The board, cut from the link's preview (html.js boardShot) at its own pixel size. */
+.site-board {
+  position: relative;
+  width: 264px;
+  max-width: 100%;
+  overflow: hidden;
+  align-self: center;
+}
 .site-shot {
-  display: block;
-  width: 100%;
+  position: absolute;
+  max-width: none;
   height: auto;
   image-rendering: pixelated;
 }
@@ -191,28 +266,32 @@ body {
   color: var(--text-enemy-highlight);
   text-align: left;
 }
-.site-raid .sui-text-label { color: var(--text-enemy-primary); }
+.site-raid .site-row-text .sui-text-label { color: var(--text-enemy-primary); }
 
-/* Hulls, most kills first: the hull on its battleground, its name, kills and losses. */
+/* Hulls, most kills first: the hull on its battleground, its name, kills and losses,
+ * under a row naming the columns. One grid, so the figures line up down the list. */
 .site-hulls {
-  display: flex;
+  display: grid;
   margin: 0;
   padding: 0;
-  flex-direction: column;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-self: stretch;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-sm);     /* tight, so a one-word hull name (STARFIGHTER, 105px) keeps its line at 360 */
   list-style: none;
 }
 .site-hull {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   text-align: left;
   align-items: center;
-  gap: var(--spacing-md);
 }
+.site-hull > :nth-child(n+3) { justify-self: end; }
+.site-hull > :last-child { padding-left: var(--spacing-md); }
+.site-hull-head > :first-child { grid-column: 1 / 3; }
 .site-hull .pc-rec-v { color: var(--text-player-primary); }
-.site-hull > .sui-text-label { min-width: 0; overflow-wrap: anywhere; }
-.site-hull .site-lost { color: var(--text-enemy-primary); }
+.site-hull > .sui-text-label { min-width: 0; padding-left: var(--spacing-sm); white-space: normal; overflow-wrap: anywhere; -webkit-hyphens: auto; hyphens: auto; }
+.site-hull .pc-rec-v.site-lost { color: var(--text-enemy-primary); }
 
 /* The debrief's tallies: a label, the player's figure, the computer's. */
 .site-tallies {
@@ -229,6 +308,7 @@ body {
   column-gap: var(--spacing-md);
 }
 .site-tally:first-child { border-top: 0; }
+.site-tally > :first-child { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .site-tally > :not(:first-child) { text-align: right; }
 
 .site-terminal {
@@ -238,11 +318,11 @@ body {
   gap: var(--spacing-md);
   text-align: left;
 }
-.site-terminal .pc-person { flex-wrap: wrap; white-space: normal; }
+.site-terminal > span { min-width: 0; }
 .site-terminal code {
   font: inherit;
   color: var(--text-body);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .site-more {
@@ -313,8 +393,9 @@ body {
   to { outline-color: var(--accent-primary-active); }
 }
 
-/* The copy button says it worked. */
-.site-copied { color: var(--accent-primary-active); }
+/* The copy button says it worked: a tick, and the pressed colour, even under the pointer. */
+.sui-screen-btn.sui-mod-secondary.site-copied,
+.sui-screen-btn.sui-mod-secondary.site-copied:hover { color: var(--accent-primary-active); }
 
 @media (prefers-reduced-motion: reduce) {
   .sui-screen-btn.site-nudge { animation: none; }
