@@ -455,9 +455,7 @@ ${hulls.map((x) => {
     const badge = { text: og.level, mod: LEVEL_MOD[og.level] || 'sui-mod-default' };
     const count = (s) => (og.units || []).filter((u) => u.side === s).length;
     if (!og.result) {
-      const k = count('defender');
-      const body = `                <p class="sui-text-paragraph sui-text-hint">Someone built this battle. Can you win it? Your ${n(k)} ${k === 1 ? 'struct' : 'structs'} against the computer's ${n(count('attacker'))}.</p>
-                ${boardShot(ctx.image, ctx.description)}
+      const body = `                ${boardShot(ctx.image, ctx.description)}
                 ${ctx.doors}`;
       return { card: card({ name: 'Challenge', id: '', badge, body }), more: '' };
     }

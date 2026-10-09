@@ -275,7 +275,7 @@ async function sim(link) {
   }
   return {
     title: `Simulator challenge · ${level} · Structs`,
-    description: `A ${level.toLowerCase()} fleet battle: your ${plural(count('defender'), 'struct')} against ${count('attacker')}. Open it in Structs and try to win.`,
+    description: `${/^[aeiou]/i.test(level) ? 'An' : 'A'} ${level.toLowerCase()} fleet battle: your ${plural(count('defender'), 'struct')} against ${count('attacker')}. Open it in Structs and try to win.`,
     model: { layout },
     og: { layout, units, level },
   };

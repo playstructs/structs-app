@@ -455,7 +455,6 @@ function simChallenge({ layout, units, level }) {
   const count = (s) => units.filter((u) => u.side === s).length;
   const you = count('defender'), cpu = count('attacker');
   const charge = layout.charge || {};
-  const pitch = lines('Someone built this battle. Can you win it?', DZ16, LW, 2);
   const sideBox = (x, y, who, num, chg, color, edge) => outline(x, y, 135, 70, edge)
     + line(x + 9, y + 7, who, ['EH', 8], { lh: 16, fill: color })
     + line(x + 9, y + 25, String(num), ['EH', 24], { fill: color })
@@ -467,7 +466,6 @@ function simChallenge({ layout, units, level }) {
   const body = stack(BODY.y, BODY.h, 8, [
     [18, (y) => badge(level, LEVEL_BADGE[level] || 'default', BODY.x, y).svg],
     [24, (y) => line(BODY.x, y, 'Challenge', ['EH', 24])],
-    [pitch.length * 20, (y) => pitch.map((l, i) => line(BODY.x, y + i * 20, l, DZ16, { fill: T.hint })).join('')],
     [70, (y) => sideBox(BODY.x, y, 'You', you, charge.player, T.player, T.player) + sideBox(BODY.x + 141, y, 'Computer', cpu, charge.computer, T.enemy, T.enemy)],
     [24, (y) => glyph('icon-refresh-12', BODY.x, y, 24) + line(BODY.x + 28, y + 2, blockS, DZ16)],
   ]) + simBoard(units);
