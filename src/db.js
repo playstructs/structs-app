@@ -170,7 +170,7 @@ export async function record(id) {
     one(`select count(*) as planets_drained from structs.planet where owner = $1 and status = 'complete'`, [id]),
     one(`select count(*) as structs_built
       from structs.struct s join structs.struct_attribute a on a.object_id = s.id and a.attribute_type = 'status'
-     where s.owner = $1 and (a.val & 2) > 0`, [id]),
+     where s.owner = $1 and (a.val::bigint & 2) > 0`, [id]),
   ]);
   const counters = {};
   for (const src of [combat, raids, ledger, planets, built]) {
@@ -192,7 +192,7 @@ export async function tally(id) {
     select 'built', t.type, count(*) from structs.struct st
       join structs.struct_type t on t.id = st.type
       join structs.struct_attribute a on a.object_id = st.id and a.attribute_type = 'status'
-     where st.owner = $1 and (a.val & 2) > 0 group by 2`, [id]);
+     where st.owner = $1 and (a.val::bigint & 2) > 0 group by 2`, [id]);
   const by = new Map();
   for (const r of rows) {
     if (!by.has(r.hull)) by.set(r.hull, { type: r.hull, built: null, kills: null, damage: null, destroyed: null, lost: null });
